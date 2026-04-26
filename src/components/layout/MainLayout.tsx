@@ -6,18 +6,25 @@ import AdminDashboardPage from "../../pages/admin/AdminDashboardPage";
 import DispatcherDashboardPage from "../../pages/dispatcher/DispatcherDashboardPage";
 import CustomerBookingPage from "../../pages/customer/CustomerBookingPage";
 
+import CustomerTicketsPage from "../../pages/customer/CustomerTicketsPage";
+import CustomerProfilePage from "../../pages/customer/CustomerProfilePage";
+
 const menuConfig = {
   ADMIN: [{ label: "Dashboard", to: "/admin/dashboard" }],
   STAFF: [{ label: "Dashboard", to: "/staff/dashboard" }],
-  CUSTOMER: [{ label: "Đặt vé", to: "/customer/booking" }],
+  CUSTOMER: [
+    { label: "Đặt vé", to: "/customer/booking" },
+    { label: "Vé của tôi", to: "/customer/tickets" },
+    { label: "Hồ sơ", to: "/customer/profile" },
+  ],
 };
 
 type RoleKey = keyof typeof menuConfig;
 
 function MainLayout() {
   const { user, logout } = useAuthStore();
-  const role = (user?.role ?? "STAFF") as RoleKey;
-  const items = menuConfig[role] ?? menuConfig.STAFF;
+  const role = (user?.role ?? "CUSTOMER") as RoleKey;
+  const items = menuConfig[role] ?? menuConfig.CUSTOMER;
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -80,6 +87,14 @@ function MainLayout() {
               <Route
                 path="/customer/booking"
                 element={<CustomerBookingPage />}
+              />
+              <Route
+                path="/customer/tickets"
+                element={<CustomerTicketsPage />}
+              />
+              <Route
+                path="/customer/profile"
+                element={<CustomerProfilePage />}
               />
               <Route path="*" element={<NavigateToDefault role={role} />} />
             </Routes>

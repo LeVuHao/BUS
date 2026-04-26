@@ -40,6 +40,15 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/trips").hasAnyRole("ADMIN", "STAFF", "CUSTOMER")
                 .requestMatchers("/api/trip-assignments/**", "/api/employees/available").hasAnyRole("ADMIN", "STAFF")
                 .requestMatchers("/api/auth/profile").authenticated()
+                // PUBLIC — tìm chuyến không cần đăng nhập
+                .requestMatchers(HttpMethod.GET, "/api/public/trips/search").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/public/trips/*/seats").permitAll()
+                // PRIVATE — chỉ CUSTOMER
+                .requestMatchers(HttpMethod.POST, "/api/private/tickets").hasRole("CUSTOMER")
+                .requestMatchers(HttpMethod.GET, "/api/private/tickets/my").hasRole("CUSTOMER")
+                .requestMatchers(HttpMethod.PUT, "/api/private/tickets/*/cancel").hasRole("CUSTOMER")
+                // PRIVATE — profile (mọi role đã đăng nhập)
+                .requestMatchers(HttpMethod.PUT, "/api/auth/profile").authenticated()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

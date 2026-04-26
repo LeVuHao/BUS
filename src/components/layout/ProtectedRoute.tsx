@@ -19,8 +19,16 @@ export default function ProtectedRoute({
     return <Navigate to="/auth/login" state={{ from: location }} replace />;
   }
 
+  const roleDefaultPath: Record<string, string> = {
+    ADMIN: "/admin/dashboard",
+    STAFF: "/staff/dashboard",
+    CUSTOMER: "/customer/booking",
+  };
+
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/auth/login" replace />;
+    return (
+      <Navigate to={roleDefaultPath[user.role] ?? "/auth/login"} replace />
+    );
   }
 
   return <>{children}</>;

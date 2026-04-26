@@ -28,6 +28,23 @@ public interface TripRepository extends JpaRepository<Trip, Long> {
 		);
 
 		@Query("""
+				SELECT t FROM Trip t
+				JOIN t.route r
+				WHERE (:origin IS NULL OR LOWER(r.origin) LIKE LOWER(CONCAT('%', :origin, '%')))
+					AND (:destination IS NULL OR LOWER(r.destination) LIKE LOWER(CONCAT('%', :destination, '%')))
+					AND (:fromDate IS NULL OR t.departureTime >= :fromDate)
+					AND (:toDate IS NULL OR t.departureTime < :toDate)
+					AND t.status = 'SCHEDULED'
+				ORDER BY t.departureTime ASC
+				""")
+		List<Trip> searchTripsByRoute(
+						@Param("origin") String origin,
+						@Param("destination") String destination,
+						@Param("fromDate") LocalDateTime fromDate,
+						@Param("toDate") LocalDateTime toDate
+		);
+
+		@Query("""
 				SELECT COUNT(t) > 0 FROM Trip t
 				WHERE t.bus.id = :busId
 					AND t.departureTime < :arrivalTime

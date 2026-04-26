@@ -1,12 +1,17 @@
 package com.business.busmanagement.controller;
 
 import com.business.busmanagement.dto.AuthResponse;
+import com.business.busmanagement.dto.UpdateProfileRequest;
+import com.business.busmanagement.model.Passenger;
 import com.business.busmanagement.model.User;
+import com.business.busmanagement.repository.PassengerRepository;
 import com.business.busmanagement.service.JwtService;
 import com.business.busmanagement.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
@@ -19,6 +24,7 @@ public class ProfileController {
 
     private final JwtService jwtService;
     private final UserService userService;
+    private final PassengerRepository passengerRepository;
 
     @GetMapping("/profile")
     public ResponseEntity<AuthResponse.UserDto> getProfile(@RequestHeader("Authorization") String authorizationHeader) {
@@ -40,5 +46,25 @@ public class ProfileController {
         }
 
         return ResponseEntity.ok(userService.createUserDto(userOptional.get()));
+    }
+
+    @PutMapping("/profile")
+    public ResponseEntity<AuthResponse.UserDto> updateProfile(
+            @Valid @RequestBody UpdateProfileRequest request) {
+
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userService.findByUsername(username)
+                .orElseThrow(() -> new SecurityException("User not found"));
+
+        // Cập nhật Passenger nếu là CUSTOMER
+        Optional<Passenger> passengerOpt = passengerRepository.findByUserId(user.getId());
+        if (passengerOpt.isPresent()) {
+            Passenger passenger = passengerOpt.get();
+            passenger.setFullName(request.getFullName());
+            passenger.setPhone(request.getPhone());
+            passengerRepository.save(passenger);
+        }
+
+        return ResponseEntity.ok(userService.createUserDto(user));
     }
 }

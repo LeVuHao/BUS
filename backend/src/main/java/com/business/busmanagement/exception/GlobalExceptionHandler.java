@@ -40,8 +40,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(SecurityException.class)
-    public ResponseEntity<ApiErrorResponse> handleForbidden(SecurityException ex) {
-        return build(HttpStatus.FORBIDDEN, ex.getMessage());
+    public ResponseEntity<ApiErrorResponse> handleUnauthorized(SecurityException ex) {
+        return build(HttpStatus.UNAUTHORIZED, ex.getMessage());
     }
 
     @ExceptionHandler(Exception.class)

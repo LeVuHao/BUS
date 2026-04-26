@@ -12,7 +12,9 @@ function normalizeRole(role: string | undefined): User["role"] {
   if (role === "ADMIN" || role === "STAFF" || role === "CUSTOMER") {
     return role;
   }
-  return "STAFF";
+  localStorage.removeItem("token");
+  localStorage.removeItem("auth-storage");
+  return "CUSTOMER";
 }
 
 interface AuthState {
@@ -56,6 +58,7 @@ export const useAuthStore = create<AuthState>()(
       logout: () => {
         set({ user: null, token: null });
         localStorage.removeItem("token");
+        localStorage.removeItem("auth-storage");
       },
       setUser: (user) => set({ user }),
     }),

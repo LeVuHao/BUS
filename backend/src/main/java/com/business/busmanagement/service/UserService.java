@@ -115,11 +115,15 @@ public class UserService {
         Optional<Employee> employee = employeeRepository.findByUserId(user.getId());
         if (employee.isPresent()) {
             userDto.setFullName(employee.get().getFullName());
+            userDto.setPhone("");
             return userDto;
         }
 
         Optional<Passenger> passenger = passengerRepository.findByUserId(user.getId());
-        passenger.ifPresent(pass -> userDto.setFullName(pass.getFullName()));
+        passenger.ifPresent(pass -> {
+            userDto.setFullName(pass.getFullName());
+            userDto.setPhone(pass.getPhone());
+        });
         return userDto;
     }
 

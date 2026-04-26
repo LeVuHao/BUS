@@ -22,6 +22,7 @@ export interface User {
   fullName: string;
   email: string;
   role: UserRole;
+  phone?: string;
 }
 
 export interface Bus {

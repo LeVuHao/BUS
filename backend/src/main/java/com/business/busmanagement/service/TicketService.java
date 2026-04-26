@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Objects;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -45,7 +46,7 @@ public class TicketService {
             throw new IllegalStateException("Không thể đặt vé cho chuyến đã hủy hoặc đã hoàn thành");
         }
 
-        if (trip.getDepartureTime() == null || trip.getDepartureTime().minusMinutes(15).isBefore(LocalDateTime.now())) {
+        if (trip.getDepartureTime() == null || LocalDateTime.now().isAfter(trip.getDepartureTime().minusMinutes(15))) {
             throw new IllegalStateException("Không thể đặt vé trong vòng 15 phút trước giờ khởi hành");
         }
 
@@ -56,16 +57,28 @@ public class TicketService {
             throw new IllegalStateException("Ghế không thuộc xe của chuyến này");
         }
 
-        if (ticketRepository.existsByTripAndSeat(trip, seat)) {
-            throw new IllegalStateException("Ghế này đã được đặt cho chuyến này");
-        }
+        Optional<Ticket> existingTicket = ticketRepository.findByTripAndSeat(trip, seat);
+        Ticket ticket;
 
-        Ticket ticket = new Ticket();
-        ticket.setTrip(trip);
-        ticket.setSeat(seat);
-        ticket.setPrice(price);
-        ticket.setStatus(Ticket.TicketStatus.BOOKED);
-        ticket.setBookedAt(LocalDateTime.now());
+        if (existingTicket.isPresent()) {
+            ticket = existingTicket.get();
+            if (ticket.getStatus() != Ticket.TicketStatus.CANCELLED
+                    && ticket.getStatus() != Ticket.TicketStatus.REFUNDED) {
+                throw new IllegalStateException("Ghế này đã được đặt cho chuyến này");
+            }
+
+            ticket.setPrice(price);
+            ticket.setStatus(Ticket.TicketStatus.BOOKED);
+            ticket.setBookedAt(LocalDateTime.now());
+            ticket.setPaidAt(null);
+        } else {
+            ticket = new Ticket();
+            ticket.setTrip(trip);
+            ticket.setSeat(seat);
+            ticket.setPrice(price);
+            ticket.setStatus(Ticket.TicketStatus.BOOKED);
+            ticket.setBookedAt(LocalDateTime.now());
+        }
 
         if (passengerId != null) {
             Passenger passenger = passengerRepository.findById(passengerId)
