@@ -3,11 +3,19 @@ import { LogOut } from "lucide-react";
 import { useAuthStore } from "../../stores/authStore";
 import { ROLE_LABELS } from "../../utils/constants";
 import AdminDashboardPage from "../../pages/admin/AdminDashboardPage";
+import AdminUsersPage from "../../pages/admin/AdminUsersPage";
+import AdminBusesPage from "../../pages/admin/AdminBusesPage";
+import AdminRoutesPage from "../../pages/admin/AdminRoutesPage";
 import DispatcherDashboardPage from "../../pages/dispatcher/DispatcherDashboardPage";
 import CustomerBookingPage from "../../pages/customer/CustomerBookingPage";
 
 const menuConfig = {
-  ADMIN: [{ label: "Dashboard", to: "/admin/dashboard" }],
+  ADMIN: [
+    { label: "Tổng quan", to: "/admin/dashboard" },
+    { label: "Tài khoản", to: "/admin/users" },
+    { label: "Xe", to: "/admin/buses" },
+    { label: "Tuyến đường", to: "/admin/routes" },
+  ],
   STAFF: [{ label: "Dashboard", to: "/staff/dashboard" }],
   CUSTOMER: [{ label: "Đặt vé", to: "/customer/booking" }],
 };
@@ -25,20 +33,16 @@ function MainLayout() {
         <aside className="w-60 bg-[#0F2849] text-white shadow-md">
           <div className="px-6 py-8">
             <div className="text-2xl font-semibold">XeKhách Pro</div>
-            <p className="mt-2 text-sm text-slate-300">
-              Quản lý chuyến xe liên tỉnh
-            </p>
+            <p className="mt-2 text-sm text-slate-300">Quản lý chuyến xe liên tỉnh</p>
           </div>
-          <nav className="px-4">
+          <nav className="space-y-1 px-4">
             {items.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 className={({ isActive }) =>
                   `block rounded-xl px-4 py-3 text-sm font-medium transition ${
-                    isActive
-                      ? "bg-amber-500 text-slate-950"
-                      : "text-slate-200 hover:bg-white/10"
+                    isActive ? "bg-amber-500 text-slate-950" : "text-slate-200 hover:bg-white/10"
                   }`
                 }
               >
@@ -53,13 +57,9 @@ function MainLayout() {
 
         <div className="flex-1">
           <header className="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-6 shadow-sm">
-            <div className="text-lg font-semibold text-slate-900">
-              Bảng điều khiển
-            </div>
+            <div className="text-lg font-semibold text-slate-900">Bảng điều khiển</div>
             <div className="flex items-center gap-3">
-              <span className="text-sm text-slate-700">
-                {user?.fullName || "Người dùng"}
-              </span>
+              <span className="text-sm text-slate-700">{user?.fullName || "Người dùng"}</span>
               <button
                 onClick={logout}
                 className="inline-flex items-center gap-2 rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-200"
@@ -73,14 +73,11 @@ function MainLayout() {
           <main className="p-6">
             <Routes>
               <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
-              <Route
-                path="/staff/dashboard"
-                element={<DispatcherDashboardPage />}
-              />
-              <Route
-                path="/customer/booking"
-                element={<CustomerBookingPage />}
-              />
+              <Route path="/admin/users" element={<AdminUsersPage />} />
+              <Route path="/admin/buses" element={<AdminBusesPage />} />
+              <Route path="/admin/routes" element={<AdminRoutesPage />} />
+              <Route path="/staff/dashboard" element={<DispatcherDashboardPage />} />
+              <Route path="/customer/booking" element={<CustomerBookingPage />} />
               <Route path="*" element={<NavigateToDefault role={role} />} />
             </Routes>
           </main>

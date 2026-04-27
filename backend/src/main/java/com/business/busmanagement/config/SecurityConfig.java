@@ -31,18 +31,21 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(AbstractHttpConfigurer::disable)
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(authz -> authz
-                .requestMatchers("/api/public/auth/register", "/api/public/auth/login", "/api/health").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/trips").hasAnyRole("ADMIN", "STAFF")
-                .requestMatchers(HttpMethod.GET, "/api/trips").hasAnyRole("ADMIN", "STAFF", "CUSTOMER")
-                .requestMatchers("/api/trip-assignments/**", "/api/employees/available").hasAnyRole("ADMIN", "STAFF")
-                .requestMatchers("/api/auth/profile").authenticated()
-                .anyRequest().authenticated()
-            )
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .csrf(AbstractHttpConfigurer::disable)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(authz -> authz
+                        .requestMatchers("/api/public/auth/register", "/api/public/auth/login", "/api/health")
+                        .permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/routes", "/api/buses").hasAnyRole("ADMIN", "STAFF")
+                        .requestMatchers(HttpMethod.POST, "/api/trips").hasAnyRole("ADMIN", "STAFF")
+                        .requestMatchers(HttpMethod.GET, "/api/trips").hasAnyRole("ADMIN", "STAFF", "CUSTOMER")
+                        .requestMatchers("/api/trip-assignments/**", "/api/employees/available")
+                        .hasAnyRole("ADMIN", "STAFF")
+                        .requestMatchers("/api/auth/profile").authenticated()
+                        .anyRequest().authenticated())
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
