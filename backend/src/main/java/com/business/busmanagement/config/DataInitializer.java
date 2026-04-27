@@ -84,6 +84,7 @@ public class DataInitializer implements CommandLineRunner {
                         existingUser.setStatus(User.UserStatus.ACTIVE);
                     }
 
+                    existingUser.setPasswordHash(passwordEncoder.encode(defaultSeedPassword));
                     return userRepository.save(existingUser);
                 })
                 .orElseGet(() -> {

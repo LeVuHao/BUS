@@ -116,11 +116,13 @@ Authorization: Bearer <token>
 
 Server sẽ tự động tạo các tài khoản mặc định (theo `DataInitializer`):
 
-- **admin** / **123456** (ADMIN)
-- **dispatcher** / **123456** (DISPATCHER)
-- **manager** / **123456** (MANAGER)
-- **driver1** / **123456** (DRIVER)
-- **assistant1** / **123456** (ASSISTANT)
+- **admin** / **ChangeMe@123** (ADMIN)
+- **dispatcher** / **ChangeMe@123** (STAFF)
+- **manager** / **ChangeMe@123** (STAFF)
+- **driver1** / **ChangeMe@123** (STAFF)
+- **assistant1** / **ChangeMe@123** (STAFF)
+
+Password mặc định được cấu hình qua biến `SEED_DEFAULT_PASSWORD` trong `application.properties`, mặc định là `ChangeMe@123`.
 
 Tài khoản **CUSTOMER** được tạo thông qua API đăng ký `POST /api/public/auth/register`.
 
