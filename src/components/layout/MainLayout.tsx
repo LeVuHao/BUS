@@ -20,7 +20,10 @@ const menuConfig = {
     { label: "Quản lý tuyến", to: "/admin/routes" },
     { label: "Quản lý chuyến", to: "/admin/trips" },
   ],
-  STAFF: [{ label: "Dashboard", to: "/staff/dashboard" }],
+  STAFF: [
+    { label: "Dashboard", to: "/staff/dashboard" },
+    { label: "Tạo chuyến", to: "/staff/dashboard" },
+  ],
   CUSTOMER: [
     { label: "Đặt vé", to: "/customer/booking" },
     { label: "Vé của tôi", to: "/customer/tickets" },

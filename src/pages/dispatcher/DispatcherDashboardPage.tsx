@@ -4,6 +4,7 @@ import { toast } from "react-hot-toast";
 import { useDispatcherStore } from "../../stores/dispatcherStore";
 import StatusBadge from "../../components/ui/StatusBadge";
 import { extractApiErrorMessage, extractApiStatus } from "../../utils/apiError";
+import CreateTripModal from "./CreateTripModal";
 
 export default function DispatcherDashboardPage() {
   const trips = useDispatcherStore((state) => state.trips);
@@ -25,6 +26,8 @@ export default function DispatcherDashboardPage() {
   const [selectedTrip, setSelectedTrip] = useState<number | null>(null);
   const [employeeId, setEmployeeId] = useState<number | null>(null);
   const [role, setRole] = useState<"DRIVER" | "ASSISTANT">("DRIVER");
+  const [isCreateTripModalOpen, setIsCreateTripModalOpen] = useState(false);
+  const [tripStatusUpdates, setTripStatusUpdates] = useState<Record<number, string>>({});
 
   useEffect(() => {
     loadTrips().catch(() => {
@@ -110,6 +113,19 @@ export default function DispatcherDashboardPage() {
     }
   };
 
+  const handleStatusChange = (tripId: number, newStatus: string) => {
+    setTripStatusUpdates((prev) => ({
+      ...prev,
+      [tripId]: newStatus,
+    }));
+    toast.success(`Đã cập nhật trạng thái chuyến ${tripId} thành ${newStatus}`);
+  };
+
+  const hasDriverAssigned = (tripId: number) => {
+    const assignments = getTripAssignments(tripId);
+    return assignments.some((a) => a.role === "DRIVER");
+  };
+
   return (
     <div className="space-y-6">
       <section className="rounded-3xl bg-white p-6 shadow-sm">
@@ -147,9 +163,18 @@ export default function DispatcherDashboardPage() {
       </section>
 
       <section className="rounded-3xl bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-semibold text-slate-900">
-          Danh sách chuyến
-        </h2>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-slate-900">
+            Danh sách chuyến
+          </h2>
+          <button
+            type="button"
+            className="rounded-2xl bg-[#0F2849] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1a3a6b]"
+            onClick={() => setIsCreateTripModalOpen(true)}
+          >
+            Tạo chuyến mới
+          </button>
+        </div>
         <div className="mt-4 overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
             <thead className="bg-slate-50 text-slate-500">
@@ -158,15 +183,20 @@ export default function DispatcherDashboardPage() {
                 <th className="px-4 py-3 font-semibold">Tuyến</th>
                 <th className="px-4 py-3 font-semibold">Xe</th>
                 <th className="px-4 py-3 font-semibold">Khởi hành</th>
+                <th className="px-4 py-3 font-semibold">Tài xế, Phụ xe</th>
                 <th className="px-4 py-3 font-semibold">Trạng thái</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
               {trips.map((trip) => {
+                const tripAssignmentsData = getTripAssignments(trip.id);
+                const hasDriver = hasDriverAssigned(trip.id);
+                const currentStatus = tripStatusUpdates[trip.id] || trip.status;
+
                 return (
                   <tr
                     key={trip.id}
-                    className={`cursor-pointer ${selectedTrip === trip.id ? "bg-slate-100" : ""}`}
+                    className={`cursor-pointer ${selectedTrip === trip.id ? "bg-slate-100" : ""} ${!hasDriver ? "bg-yellow-100" : ""}`}
                     onClick={() => setSelectedTrip(trip.id)}
                   >
                     <td className="px-4 py-3">{trip.id}</td>
@@ -176,7 +206,36 @@ export default function DispatcherDashboardPage() {
                       {format(new Date(trip.departureTime), "dd/MM/yyyy HH:mm")}
                     </td>
                     <td className="px-4 py-3">
-                      <StatusBadge status={trip.status} />
+                      {tripAssignmentsData.length === 0 ? (
+                        <span className="text-slate-500">Chưa phân công</span>
+                      ) : (
+                        <div className="space-y-1">
+                          {tripAssignmentsData.map((assignment) => (
+                            <div key={assignment.id} className="text-xs">
+                              <span className="font-medium">
+                                {assignment.role === "DRIVER" ? "TX" : "PX"}:
+                              </span>{" "}
+                              {assignment.employeeName || "Chưa gán"}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <select
+                        value={currentStatus}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleStatusChange(trip.id, e.target.value);
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium"
+                      >
+                        <option value="RUNNING">Đang chạy</option>
+                        <option value="DELAYED">Trễ</option>
+                        <option value="COMPLETED">Hoàn thành</option>
+                        <option value="CANCELLED">Hủy</option>
+                      </select>
                     </td>
                   </tr>
                 );
@@ -328,6 +387,17 @@ export default function DispatcherDashboardPage() {
           </div>
         </div>
       </section>
+
+      {isCreateTripModalOpen && (
+        <CreateTripModal
+          isOpen={isCreateTripModalOpen}
+          onClose={() => setIsCreateTripModalOpen(false)}
+          onSuccess={() => {
+            setIsCreateTripModalOpen(false);
+            loadTrips();
+          }}
+        />
+      )}
     </div>
   );
 }
