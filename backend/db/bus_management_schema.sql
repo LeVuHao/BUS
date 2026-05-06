@@ -6,19 +6,19 @@ USE bus_management_db;
 
 -- 1. Roles
 CREATE TABLE IF NOT EXISTS roles (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(50) NOT NULL UNIQUE,
     description TEXT
 ) ENGINE=InnoDB;
 
 -- 2. Users
 CREATE TABLE IF NOT EXISTS users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     email VARCHAR(100) UNIQUE,
     phone VARCHAR(20),
-    role_id INT,
+    role_id BIGINT,
     status ENUM('ACTIVE', 'INACTIVE', 'LOCKED') DEFAULT 'ACTIVE',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_user_role FOREIGN KEY (role_id) REFERENCES roles(id)
@@ -26,8 +26,8 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- 3. Employees
 CREATE TABLE IF NOT EXISTS employees (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT UNIQUE,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT UNIQUE,
     full_name VARCHAR(100) NOT NULL,
     phone VARCHAR(20),
     employee_type ENUM('DRIVER', 'ASSISTANT', 'TECHNICIAN', 'DISPATCHER', 'MANAGER') NOT NULL,
@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS employees (
 
 -- 4. Routes
 CREATE TABLE IF NOT EXISTS routes (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
     origin VARCHAR(100) NOT NULL,
     destination VARCHAR(100) NOT NULL,
     distance_km DECIMAL(10,2) NOT NULL CHECK (distance_km > 0),
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS routes (
 
 -- 5. Buses
 CREATE TABLE IF NOT EXISTS buses (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
     license_plate VARCHAR(20) NOT NULL UNIQUE,
     bus_type ENUM('LIMOUSINE', 'SLEEPER', 'SEAT'),
     total_seats INT NOT NULL,
@@ -59,8 +59,8 @@ CREATE TABLE IF NOT EXISTS buses (
 
 -- 6. Seats
 CREATE TABLE IF NOT EXISTS seats (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    bus_id INT,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    bus_id BIGINT,
     seat_number VARCHAR(10) NOT NULL,
     position_x INT,
     position_y INT,
@@ -70,9 +70,9 @@ CREATE TABLE IF NOT EXISTS seats (
 
 -- 7. Trips
 CREATE TABLE IF NOT EXISTS trips (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    route_id INT,
-    bus_id INT,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    route_id BIGINT,
+    bus_id BIGINT,
     departure_time DATETIME NOT NULL,
     arrival_time DATETIME,
     status ENUM('SCHEDULED', 'RUNNING', 'COMPLETED', 'CANCELLED', 'DELAYED') DEFAULT 'SCHEDULED',
@@ -84,9 +84,9 @@ CREATE TABLE IF NOT EXISTS trips (
 
 -- 8. Trip assignments
 CREATE TABLE IF NOT EXISTS trip_assignments (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    trip_id INT,
-    employee_id INT,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    trip_id BIGINT,
+    employee_id BIGINT,
     assignment_role ENUM('DRIVER', 'ASSISTANT'),
     assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_assign_trip FOREIGN KEY (trip_id) REFERENCES trips(id) ON DELETE CASCADE,
@@ -97,8 +97,8 @@ CREATE TABLE IF NOT EXISTS trip_assignments (
 
 -- 9. Passengers
 CREATE TABLE IF NOT EXISTS passengers (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT,
     full_name VARCHAR(100) NOT NULL,
     phone VARCHAR(20) NOT NULL,
     email VARCHAR(100),
@@ -108,13 +108,13 @@ CREATE TABLE IF NOT EXISTS passengers (
 
 -- 10. Tickets
 CREATE TABLE IF NOT EXISTS tickets (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    trip_id INT,
-    seat_id INT,
-    passenger_id INT,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    trip_id BIGINT,
+    seat_id BIGINT,
+    passenger_id BIGINT,
     price DECIMAL(10,2) NOT NULL,
     status ENUM('BOOKED', 'HOLD', 'EXPIRED', 'PAID', 'CANCELLED', 'REFUNDED') DEFAULT 'BOOKED',
-    booked_by INT,
+    booked_by BIGINT,
     booked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     paid_at DATETIME,
     CONSTRAINT fk_ticket_trip FOREIGN KEY (trip_id) REFERENCES trips(id),
@@ -125,8 +125,8 @@ CREATE TABLE IF NOT EXISTS tickets (
 
 -- 11. Payments
 CREATE TABLE IF NOT EXISTS payments (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    ticket_id INT UNIQUE,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    ticket_id BIGINT UNIQUE,
     amount DECIMAL(10,2) NOT NULL,
     payment_method ENUM('CASH', 'CARD', 'MOMO', 'BANK'),
     status ENUM('PENDING', 'SUCCESS', 'FAILED') DEFAULT 'PENDING',
@@ -137,8 +137,8 @@ CREATE TABLE IF NOT EXISTS payments (
 
 -- 12. Cargo
 CREATE TABLE IF NOT EXISTS cargos (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    trip_id INT NOT NULL,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    trip_id BIGINT NOT NULL,
     sender_name VARCHAR(100) NOT NULL,
     receiver_name VARCHAR(100) NOT NULL,
     receiver_phone VARCHAR(20) NOT NULL,
@@ -152,8 +152,8 @@ CREATE TABLE IF NOT EXISTS cargos (
 
 -- 13. Maintenance
 CREATE TABLE IF NOT EXISTS maintenance (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    bus_id INT,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    bus_id BIGINT,
     description TEXT,
     cost DECIMAL(12,2),
     maintenance_date DATE,
@@ -163,11 +163,11 @@ CREATE TABLE IF NOT EXISTS maintenance (
 
 -- 14. Audit logs
 CREATE TABLE IF NOT EXISTS audit_logs (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT,
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT,
     action VARCHAR(20),
     table_name VARCHAR(50),
-    record_id INT,
+    record_id BIGINT,
     old_values JSON,
     new_values JSON,
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP

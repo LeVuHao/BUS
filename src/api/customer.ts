@@ -84,3 +84,7 @@ export const getProfile = (): Promise<{
 
 export const updateProfile = (payload: UpdateProfilePayload): Promise<void> =>
   apiClient.put("/auth/profile", payload).then((r) => r.data);
+
+export const mockPayment = async (data: any) => {
+    // ... code xử lý payment của bạn
+};

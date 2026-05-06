@@ -70,11 +70,15 @@ public class DataInitializer implements CommandLineRunner {
         log.info("Users initialized");
     }
 
-    private User ensureUser(String username, String email, Role role) {
+   private User ensureUser(String username, String email, Role role) {
         return userRepository.findByUsername(username)
                 .map(existingUser -> {
+                    // Cập nhật các thông tin cơ bản
                     existingUser.setEmail(email);
                     existingUser.setRole(role);
+                    
+                    // THÊM DÒNG NÀY: Luôn ép mã hóa và cập nhật lại mật khẩu thành ChangeMe@123
+                    existingUser.setPasswordHash(passwordEncoder.encode(defaultSeedPassword));
 
                     if (existingUser.getStatus() == null) {
                         existingUser.setStatus(User.UserStatus.ACTIVE);
@@ -93,7 +97,6 @@ public class DataInitializer implements CommandLineRunner {
                     return userRepository.save(user);
                 });
     }
-
     private void initializeRoutes() {
         if (routeRepository.count() == 0) {
             Route route1 = new Route();
