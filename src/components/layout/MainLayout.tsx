@@ -7,6 +7,9 @@ import AdminUsersPage from "../../pages/admin/AdminUsersPage";
 import AdminBusesPage from "../../pages/admin/AdminBusesPage";
 import AdminRoutesPage from "../../pages/admin/AdminRoutesPage";
 import AdminTripsPage from "../../pages/admin/AdminTripsPage";
+// BỔ SUNG IMPORT TRANG QUẢN LÝ VÉ
+import AdminTicketsPage from "../../pages/admin/AdminTicketsPage"; 
+
 import CustomerBookingPage from "../../pages/customer/CustomerBookingPage";
 import CustomerTicketsPage from "../../pages/customer/CustomerTicketsPage";
 import CustomerProfilePage from "../../pages/customer/CustomerProfilePage";
@@ -18,6 +21,8 @@ const menuConfig = {
     { label: "Quản lý xe", to: "/admin/buses" },
     { label: "Quản lý tuyến", to: "/admin/routes" },
     { label: "Quản lý chuyến", to: "/admin/trips" },
+    // BỔ SUNG MENU QUẢN LÝ VÉ VÀO ĐÂY
+    { label: "Quản lý vé", to: "/admin/tickets" }, 
   ],
   CUSTOMER: [
     { label: "Đặt vé", to: "/customer/booking" },
@@ -61,11 +66,11 @@ function MainLayout() {
             ))}
           </nav>
           <div className="mt-8 px-6 text-xs text-slate-400">
-            Vai trò: {ROLE_LABELS[role as keyof typeof ROLE_LABELS]}
+            Vai trò: {ROLE_LABELS[role as keyof typeof ROLE_LABELS] || role}
           </div>
         </aside>
 
-        <div className="flex-1">
+        <div className="flex-1 flex flex-col">
           <header className="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-6 shadow-sm">
             <div className="text-lg font-semibold text-slate-900">
               Bảng điều khiển
@@ -84,25 +89,22 @@ function MainLayout() {
             </div>
           </header>
 
-          <main className="p-6">
+          <main className="p-6 flex-1 overflow-y-auto">
             <Routes>
+              {/* ADMIN ROUTES */}
               <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
               <Route path="/admin/users" element={<AdminUsersPage />} />
               <Route path="/admin/buses" element={<AdminBusesPage />} />
               <Route path="/admin/routes" element={<AdminRoutesPage />} />
               <Route path="/admin/trips" element={<AdminTripsPage />} />
-              <Route
-                path="/customer/booking"
-                element={<CustomerBookingPage />}
-              />
-              <Route
-                path="/customer/tickets"
-                element={<CustomerTicketsPage />}
-              />
-              <Route
-                path="/customer/profile"
-                element={<CustomerProfilePage />}
-              />
+              {/* BỔ SUNG ROUTE TRANG QUẢN LÝ VÉ */}
+              <Route path="/admin/tickets" element={<AdminTicketsPage />} />
+
+              {/* CUSTOMER ROUTES */}
+              <Route path="/customer/booking" element={<CustomerBookingPage />} />
+              <Route path="/customer/tickets" element={<CustomerTicketsPage />} />
+              <Route path="/customer/profile" element={<CustomerProfilePage />} />
+
               <Route path="*" element={<NavigateToDefault role={role} />} />
             </Routes>
           </main>

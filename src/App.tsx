@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import LoginPage from "./pages/auth/LoginPage";
 import RegisterPage from "./pages/auth/RegisterPage";
@@ -11,6 +11,7 @@ function App() {
       <Routes>
         <Route path="/auth/login" element={<LoginPage />} />
         <Route path="/auth/register" element={<RegisterPage />} />
+        {/* Mọi đường dẫn khác đều đi qua đây */}
         <Route
           path="/*"
           element={

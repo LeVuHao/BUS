@@ -1,12 +1,16 @@
 package com.business.busmanagement.controller;
+import com.business.busmanagement.dto.AdminTicketDTO;
 
 import com.business.busmanagement.dto.TripCreateRequest;
 import com.business.busmanagement.dto.TripResponse;
 import com.business.busmanagement.dto.admin.*;
 import com.business.busmanagement.model.Trip;
+import com.business.busmanagement.repository.TicketRepository;
 import com.business.busmanagement.service.AdminService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,7 +23,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 @CrossOrigin(origins = "${app.cors.allowed-origins}")
 public class AdminController {
-
+    @Autowired
+    private TicketRepository ticketRepository;
     private final AdminService adminService;
 
     // ==================== DASHBOARD ====================
@@ -199,4 +204,10 @@ public class AdminController {
     public ResponseEntity<TicketDetailResponse> getTicketById(@PathVariable Long id) {
         return ResponseEntity.ok(adminService.getTicketById(id));
     }
+
+    @GetMapping("/tickets/all")
+public ResponseEntity<List<AdminTicketDTO>> getAllTickets() {
+    List<AdminTicketDTO> tickets = ticketRepository.findAllTicketsForAdmin();
+    return ResponseEntity.ok(tickets);
+}
 }

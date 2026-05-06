@@ -111,3 +111,16 @@ export interface AuditLog {
   newValues?: Record<string, unknown>;
   createdAt: string;
 }
+
+export interface AdminTicket {
+  ticketId: number;
+  routeName: string;
+  departureTime: string;
+  busInfo: string;
+  seatNumber: string;
+  passengerName: string;
+  passengerPhone: string;
+  bookedAt: string;
+  price: number;
+  status: 'BOOKED' | 'HOLD' | 'EXPIRED' | 'PAID' | 'CANCELLED' | 'REFUNDED';
+}

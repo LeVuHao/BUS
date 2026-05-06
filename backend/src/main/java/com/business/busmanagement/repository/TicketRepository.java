@@ -1,5 +1,5 @@
 package com.business.busmanagement.repository;
-
+import com.business.busmanagement.dto.AdminTicketDTO;
 import com.business.busmanagement.model.Seat;
 import com.business.busmanagement.model.Ticket;
 import com.business.busmanagement.model.Trip;
@@ -47,4 +47,21 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             @Param("status") Ticket.TicketStatus status,
             @Param("tripId") Long tripId
     );
+
+
+   @Query("SELECT new com.business.busmanagement.dto.AdminTicketDTO(" +
+           "t.id, r.origin, r.destination, tr.departureTime, " +
+           "b.licensePlate, b.busType, s.seatNumber, " + // Bỏ CAST ở b.busType
+           "p.fullName, p.phone, t.bookedAt, t.price, t.status) " + // Bỏ CAST ở t.status
+           "FROM Ticket t " +
+           "LEFT JOIN t.trip tr " +
+           "LEFT JOIN tr.route r " +
+           "LEFT JOIN tr.bus b " +
+           "LEFT JOIN t.seat s " +
+           "LEFT JOIN t.passenger p " +
+           "ORDER BY t.bookedAt DESC")
+    List<AdminTicketDTO> findAllTicketsForAdmin();
 }
+
+
+

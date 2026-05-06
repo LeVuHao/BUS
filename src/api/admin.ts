@@ -1,5 +1,5 @@
 import apiClient from "./apiClient";
-import { UserRole } from "../types";
+import { AdminTicket, UserRole } from "../types";
 
 // ==================== DASHBOARD ====================
 
@@ -260,4 +260,11 @@ export async function updateAdminTrip(id: number, payload: CreateTripPayload): P
 
 export async function deleteAdminTrip(id: number): Promise<void> {
   await apiClient.delete(`/admin/trips/${id}`);
+}
+
+
+export const getAllTicketsForAdmin = async (): Promise<AdminTicket[]> => {
+  // SỬA ĐƯỜNG DẪN Ở ĐÂY THÊM CHỮ /all
+  const response = await apiClient.get('/admin/tickets/all'); 
+  return response.data;
 }
