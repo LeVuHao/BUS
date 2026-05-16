@@ -11,8 +11,11 @@ import {
   getBuses,
   getRoutes,
   updateAdminTrip,
+  getEmployeesByType, // <-- THÊM MỚI
+  assignStaffToTrip,   // <-- THÊM MỚI
+  getStaffByTrip
 } from "../../api/admin";
-import { TripStatus } from "../../types";
+import { Employee, TripStatus } from "../../types";
 import { extractApiErrorMessage } from "../../utils/apiError";
 
 const TRIP_STATUS_OPTIONS: { value: TripStatus | ""; label: string }[] = [
@@ -36,6 +39,11 @@ export default function AdminTripsPage() {
   const [trips, setTrips] = useState<AdminTrip[]>([]);
   const [routes, setRoutes] = useState<AdminRoute[]>([]);
   const [buses, setBuses] = useState<AdminBus[]>([]);
+
+  // ĐƯA 2 STATE NÀY VÀO BÊN TRONG COMPONENT
+  const [drivers, setDrivers] = useState<Employee[]>([]);
+  const [assistants, setAssistants] = useState<Employee[]>([]);
+
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [filterRouteId, setFilterRouteId] = useState<number | "">("");
@@ -58,22 +66,27 @@ export default function AdminTripsPage() {
     }
   }, [filterRouteId, filterStatus]);
 
-  const loadRoutesAndBuses = useCallback(async () => {
+  // CẬP NHẬT: Tải thêm danh sách Tài xế và Phụ xe cùng lúc
+  const loadFormData = useCallback(async () => {
     try {
-      const [routeData, busData] = await Promise.all([
+      const [routeData, busData, driverData, assistantData] = await Promise.all([
         getRoutes({ activeOnly: true }),
         getBuses(),
+        getEmployeesByType('DRIVER'),
+        getEmployeesByType('ASSISTANT')
       ]);
       setRoutes(routeData);
       setBuses(busData);
+      setDrivers(driverData);
+      setAssistants(assistantData);
     } catch (err) {
-      toast.error(extractApiErrorMessage(err) || "Không thể tải dữ liệu tuyến/xe");
+      toast.error(extractApiErrorMessage(err) || "Không thể tải dữ liệu form");
     }
   }, []);
 
   useEffect(() => {
-    loadRoutesAndBuses();
-  }, [loadRoutesAndBuses]);
+    loadFormData();
+  }, [loadFormData]);
 
   useEffect(() => {
     loadTrips();
@@ -82,25 +95,38 @@ export default function AdminTripsPage() {
   const handleSaveTrip = async (form: TripFormValues) => {
     setIsSaving(true);
     try {
+      let currentTripId = editingTrip?.id;
+
+      // 1. LƯU CHUYẾN ĐI TRƯỚC
       if (editingTrip) {
-        await updateAdminTrip(editingTrip.id, {
+        await updateAdminTrip(currentTripId, {
           routeId: form.routeId,
           busId: form.busId,
           departureTime: form.departureTime,
           arrivalTime: form.arrivalTime,
           status: form.status,
         });
-        toast.success("Cập nhật chuyến thành công");
       } else {
-        await createAdminTrip({
+        const newTrip: any = await createAdminTrip({
           routeId: form.routeId,
           busId: form.busId,
           departureTime: form.departureTime,
           arrivalTime: form.arrivalTime,
           status: form.status,
         });
-        toast.success("Tạo chuyến mới thành công");
+        currentTripId = newTrip?.id || newTrip?.data?.id; // Lấy ID của chuyến mới tạo
       }
+
+      // 2. SAU KHI LƯU CHUYẾN THÀNH CÔNG -> GỌI API PHÂN CÔNG NHÂN SỰ
+      if (currentTripId) {
+        await assignStaffToTrip(
+          currentTripId,
+          form.driverId ? Number(form.driverId) : null,
+          form.assistantId ? Number(form.assistantId) : null
+        );
+      }
+
+      toast.success(editingTrip ? "Cập nhật chuyến và nhân sự thành công" : "Tạo chuyến mới thành công");
       setShowModal(false);
       setEditingTrip(null);
       await loadTrips();
@@ -135,7 +161,7 @@ export default function AdminTripsPage() {
             </p>
             <h1 className="admin-title text-3xl">Quản lý chuyến</h1>
             <p className="admin-subtitle mt-2 text-sm">
-              Lên lịch, cập nhật và quản lý các chuyến xe trên hệ thống.
+              Lên lịch, phân công nhân sự và quản lý các chuyến xe trên hệ thống.
             </p>
           </div>
 
@@ -244,9 +270,25 @@ export default function AdminTripsPage() {
                       <div className="flex justify-end gap-2">
                         <button
                           title="Sửa"
-                          onClick={() => {
-                            setEditingTrip(trip);
-                            setShowModal(true);
+                          onClick={async () => {
+                            try {
+                              // Gọi API lấy nhân sự đang được phân công cho chuyến này
+                              const assignments = await getStaffByTrip(trip.id);
+                              const driver = assignments.find((a: any) => a.assignmentRole === 'DRIVER');
+                              const assistant = assignments.find((a: any) => a.assignmentRole === 'ASSISTANT');
+
+                              // Nhét ID tìm được vào dữ liệu chuyến đi rồi mới mở Form
+                              setEditingTrip({
+                                ...trip,
+                                driverId: driver ? driver.employeeId : "",
+                                assistantId: assistant ? assistant.employeeId : ""
+                              });
+                              setShowModal(true);
+                            } catch (error) {
+                              console.error("Lỗi lấy nhân sự", error);
+                              setEditingTrip(trip); // Nếu lỗi thì vẫn mở form bình thường
+                              setShowModal(true);
+                            }
                           }}
                           className="rounded-xl p-2 text-slate-400 transition hover:bg-blue-50 hover:text-blue-600"
                         >
@@ -279,6 +321,8 @@ export default function AdminTripsPage() {
           isSaving={isSaving}
           routes={routes}
           buses={buses}
+          drivers={drivers}       // <-- TRUYỀN DATA TÀI XẾ XUỐNG MODAL
+          assistants={assistants} // <-- TRUYỀN DATA PHỤ XE XUỐNG MODAL
           initialData={editingTrip}
         />
       )}
@@ -292,6 +336,8 @@ interface TripFormValues {
   departureTime: string;
   arrivalTime: string;
   status?: string;
+  driverId: number | "";     // <-- THÊM TRƯỜNG DỮ LIỆU
+  assistantId: number | "";  // <-- THÊM TRƯỜNG DỮ LIỆU
 }
 
 function TripModal({
@@ -300,6 +346,8 @@ function TripModal({
   isSaving,
   routes,
   buses,
+  drivers,
+  assistants,
   initialData,
 }: {
   onClose: () => void;
@@ -307,6 +355,8 @@ function TripModal({
   isSaving: boolean;
   routes: AdminRoute[];
   buses: AdminBus[];
+  drivers: Employee[];
+  assistants: Employee[];
   initialData: any;
 }) {
   const [form, setForm] = useState<TripFormValues>({
@@ -315,6 +365,8 @@ function TripModal({
     departureTime: initialData?.departureTime ?? "",
     arrivalTime: initialData?.arrivalTime ?? "",
     status: initialData?.status ?? "SCHEDULED",
+    driverId: initialData?.driverId ?? "",
+    assistantId: initialData?.assistantId ?? "",
   });
 
   useEffect(() => {
@@ -324,6 +376,8 @@ function TripModal({
       departureTime: initialData?.departureTime ?? "",
       arrivalTime: initialData?.arrivalTime ?? "",
       status: initialData?.status ?? "SCHEDULED",
+      driverId: initialData?.driverId ?? "",
+      assistantId: initialData?.assistantId ?? "",
     });
   }, [initialData, routes, buses]);
 
@@ -336,7 +390,7 @@ function TripModal({
 
   return (
     <div className="admin-modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="admin-modal w-full max-w-2xl p-6">
+      <div className="admin-modal w-full max-w-2xl p-6 overflow-y-auto max-h-[90vh]">
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-lg font-bold text-slate-900">
             {initialData ? `Chỉnh sửa chuyến #${initialData.id}` : "Tạo chuyến mới"}
@@ -416,6 +470,36 @@ function TripModal({
                 className="admin-input w-full px-3 py-2 text-sm outline-none"
                 required
               />
+            </div>
+          </div>
+
+          {/* === BỔ SUNG KHU VỰC CHỌN NHÂN SỰ VÀO FORM === */}
+          <div className="grid grid-cols-2 gap-4 mt-4 rounded-lg border bg-slate-50 p-4">
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-slate-700">Chọn Tài xế</label>
+              <select
+                value={form.driverId}
+                onChange={(e) => setForm({ ...form, driverId: e.target.value ? Number(e.target.value) : "" })}
+                className="admin-select w-full px-3 py-2 text-sm outline-none bg-white"
+              >
+                <option value="">-- Bỏ trống --</option>
+                {drivers.map(d => (
+                  <option key={d.id} value={d.id}>{d.fullName} ({d.phone})</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-semibold text-slate-700">Chọn Phụ xe</label>
+              <select
+                value={form.assistantId}
+                onChange={(e) => setForm({ ...form, assistantId: e.target.value ? Number(e.target.value) : "" })}
+                className="admin-select w-full px-3 py-2 text-sm outline-none bg-white"
+              >
+                <option value="">-- Bỏ trống --</option>
+                {assistants.map(a => (
+                  <option key={a.id} value={a.id}>{a.fullName} ({a.phone})</option>
+                ))}
+              </select>
             </div>
           </div>
 

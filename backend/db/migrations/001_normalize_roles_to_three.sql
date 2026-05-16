@@ -19,4 +19,4 @@ WHERE role_id IN (
 DELETE FROM roles
 WHERE name IN ('DISPATCHER', 'MANAGER', 'TECHNICIAN', 'TICKET_AGENT', 'DRIVER', 'ASSISTANT');
 
-COMMIT;
+COMMIT;INSERT IGNORE INTO roles (name, description) VALUES     ('ADMIN', 'Administrator with full access'),     ('STAFF', 'Operational staff with dispatch, reporting, maintenance and ticket access'),     ('CUSTOMER', 'Customer account')

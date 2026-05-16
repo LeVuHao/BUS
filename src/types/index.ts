@@ -65,11 +65,6 @@ export interface TripAssignment {
   role: EmployeeRole;
 }
 
-export interface Employee {
-  id: number;
-  fullName: string;
-  employeeType: EmployeeRole;
-}
 
 export interface Ticket {
   id: number;
@@ -123,4 +118,12 @@ export interface AdminTicket {
   bookedAt: string;
   price: number;
   status: 'BOOKED' | 'HOLD' | 'EXPIRED' | 'PAID' | 'CANCELLED' | 'REFUNDED';
+}
+export interface Employee {
+  id: number;
+  fullName: string;
+  phone: string;
+  employeeType: 'DRIVER' | 'ASSISTANT' | 'TECHNICIAN' | 'DISPATCHER' | 'MANAGER';
+  status: 'ACTIVE' | 'INACTIVE';
+  currentTripInfo?: string;
 }

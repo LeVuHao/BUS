@@ -5,12 +5,15 @@ import RegisterPage from "./pages/auth/RegisterPage";
 import MainLayout from "./components/layout/MainLayout";
 import ProtectedRoute from "./components/layout/ProtectedRoute";
 
+
+
 function App() {
   return (
     <div className="min-h-screen bg-[var(--admin-bg)] text-slate-900">
       <Routes>
         <Route path="/auth/login" element={<LoginPage />} />
         <Route path="/auth/register" element={<RegisterPage />} />
+        
         {/* Mọi đường dẫn khác đều đi qua đây */}
         <Route
           path="/*"
@@ -18,6 +21,7 @@ function App() {
             <ProtectedRoute>
               <MainLayout />
             </ProtectedRoute>
+            
           }
         />
       </Routes>

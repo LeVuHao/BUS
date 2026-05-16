@@ -1,5 +1,5 @@
 import apiClient from "./apiClient";
-import { AdminTicket, UserRole } from "../types";
+import { AdminTicket, Employee, UserRole } from "../types";
 
 // ==================== DASHBOARD ====================
 
@@ -268,3 +268,28 @@ export const getAllTicketsForAdmin = async (): Promise<AdminTicket[]> => {
   const response = await apiClient.get('/admin/tickets/all'); 
   return response.data;
 }
+export const assignStaffToTrip = async (tripId: number, driverId: number | null, assistantId: number | null) => {
+  const response = await apiClient.post(`/admin/trip-assignments/${tripId}`, {
+    driverId,
+    assistantId
+  });
+  return response.data;
+};
+export const getAllEmployees = async (): Promise<Employee[]> => {
+  const response = await apiClient.get('/admin/employees');
+  return response.data;
+};
+
+export const createEmployee = async (employeeData: Omit<Employee, 'id'>): Promise<Employee> => {
+  const response = await apiClient.post('/admin/employees', employeeData);
+  return response.data;
+};
+
+export const getEmployeesByType = async (type: 'DRIVER' | 'ASSISTANT'): Promise<Employee[]> => {
+  const response = await apiClient.get(`/admin/employees/type/${type}`);
+  return response.data;
+};
+export const getStaffByTrip = async (tripId: number) => {
+  const response = await apiClient.get(`/admin/trip-assignments/${tripId}`);
+  return response.data;
+};

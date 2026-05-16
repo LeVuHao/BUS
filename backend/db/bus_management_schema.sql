@@ -1,5 +1,6 @@
 -- Bus Management Database Schema and Seed Data
 -- This script is intended as project documentation and optional database bootstrap.
+DROP DATABASE IF EXISTS bus_management_db;
 
 CREATE DATABASE IF NOT EXISTS bus_management_db;
 USE bus_management_db;
