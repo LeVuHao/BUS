@@ -54,6 +54,6 @@ public class Ticket {
     private Payment payment;
 
     public enum TicketStatus {
-        BOOKED, HOLD, EXPIRED, PAID, CANCELLED, REFUNDED
+        BOOKED, HOLD, CONFIRMED, EXPIRED, PAID, CANCELLED, REFUNDED
     }
 }

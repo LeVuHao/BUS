@@ -677,6 +677,42 @@ public class AdminService {
         return toTicketDetailResponse(ticket);
     }
 
+    /**
+     * Admin xác nhận vé sau khi gọi điện cho khách.
+     * Chỉ vé đang ở trạng thái HOLD mới có thể xác nhận.
+     */
+    @Transactional
+    public TicketDetailResponse confirmTicket(Long id) {
+        Ticket ticket = ticketRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket not found with id: " + id));
+
+        if (ticket.getStatus() != Ticket.TicketStatus.HOLD) {
+            throw new BusinessConflictException("Chỉ vé đang chờ xác nhận (HOLD) mới có thể xác nhận");
+        }
+
+        ticket.setStatus(Ticket.TicketStatus.CONFIRMED);
+
+        return toTicketDetailResponse(ticketRepository.save(ticket));
+    }
+
+    /**
+     * Admin hủy vé khi không xác nhận được với khách.
+     * Chỉ vé đang ở trạng thái HOLD mới có thể hủy bởi admin.
+     */
+    @Transactional
+    public TicketDetailResponse adminCancelTicket(Long id) {
+        Ticket ticket = ticketRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket not found with id: " + id));
+
+        if (ticket.getStatus() != Ticket.TicketStatus.HOLD) {
+            throw new BusinessConflictException("Chỉ vé đang chờ xác nhận (HOLD) mới có thể hủy");
+        }
+
+        ticket.setStatus(Ticket.TicketStatus.CANCELLED);
+
+        return toTicketDetailResponse(ticketRepository.save(ticket));
+    }
+
     private TicketListResponse toTicketListResponse(Ticket ticket) {
         String routeName = "";
         String busLabel = "";

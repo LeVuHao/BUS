@@ -210,4 +210,16 @@ public ResponseEntity<List<AdminTicketDTO>> getAllTickets() {
     List<AdminTicketDTO> tickets = ticketRepository.findAllTicketsForAdmin();
     return ResponseEntity.ok(tickets);
 }
+
+    // ==================== TICKET ACTIONS ====================
+
+    @PutMapping("/tickets/{id}/confirm")
+    public ResponseEntity<TicketDetailResponse> confirmTicket(@PathVariable Long id) {
+        return ResponseEntity.ok(adminService.confirmTicket(id));
+    }
+
+    @PutMapping("/tickets/{id}/admin-cancel")
+    public ResponseEntity<TicketDetailResponse> adminCancelTicket(@PathVariable Long id) {
+        return ResponseEntity.ok(adminService.adminCancelTicket(id));
+    }
 }
