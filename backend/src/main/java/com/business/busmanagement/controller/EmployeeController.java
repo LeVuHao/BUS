@@ -1,8 +1,8 @@
 package com.business.busmanagement.controller;
 
-import com.business.busmanagement.model.Employee; // Đã đổi thành model
+import com.business.busmanagement.model.Employee;
 import com.business.busmanagement.repository.EmployeeRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;

@@ -2,7 +2,7 @@ package com.business.busmanagement.controller;
 
 import com.business.busmanagement.model.TripAssignment;
 import com.business.busmanagement.repository.TripAssignmentRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.Map;

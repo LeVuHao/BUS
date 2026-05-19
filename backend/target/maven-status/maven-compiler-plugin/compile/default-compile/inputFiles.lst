@@ -18,6 +18,7 @@ D:\pus\BUS\backend\src\main\java\com\business\busmanagement\dto\admin\UpdateUser
 D:\pus\BUS\backend\src\main\java\com\business\busmanagement\model\Employee.java
 D:\pus\BUS\backend\src\main\java\com\business\busmanagement\dto\admin\TicketDetailResponse.java
 D:\pus\BUS\backend\src\main\java\com\business\busmanagement\model\User.java
+D:\pus\BUS\backend\src\main\java\com\business\busmanagement\repository\AuditLogRepository.java
 D:\pus\BUS\backend\src\main\java\com\business\busmanagement\dto\admin\UpdateRouteRequest.java
 D:\pus\BUS\backend\src\main\java\com\business\busmanagement\model\Bus.java
 D:\pus\BUS\backend\src\main\java\com\business\busmanagement\model\AuditLog.java
@@ -38,6 +39,7 @@ D:\pus\BUS\backend\src\main\java\com\business\busmanagement\controller\TripContr
 D:\pus\BUS\backend\src\main\java\com\business\busmanagement\service\TicketService.java
 D:\pus\BUS\backend\src\main\java\com\business\busmanagement\model\Cargo.java
 D:\pus\BUS\backend\src\main\java\com\business\busmanagement\config\JwtAuthenticationFilter.java
+D:\pus\BUS\backend\src\main\java\com\business\busmanagement\controller\CargoController.java
 D:\pus\BUS\backend\src\main\java\com\business\busmanagement\dto\admin\UpdateBusRequest.java
 D:\pus\BUS\backend\src\main\java\com\business\busmanagement\dto\AuthResponse.java
 D:\pus\BUS\backend\src\main\java\com\business\busmanagement\util\RoleNormalizer.java
@@ -50,6 +52,8 @@ D:\pus\BUS\backend\src\main\java\com\business\busmanagement\repository\TripAssig
 D:\pus\BUS\backend\src\main\java\com\business\busmanagement\repository\UserRepository.java
 D:\pus\BUS\backend\src\main\java\com\business\busmanagement\config\SecurityConfig.java
 D:\pus\BUS\backend\src\main\java\com\business\busmanagement\controller\AdminController.java
+D:\pus\BUS\backend\src\main\java\com\business\busmanagement\repository\CargoRepository.java
+D:\pus\BUS\backend\src\main\java\com\business\busmanagement\repository\MaintenanceRepository.java
 D:\pus\BUS\backend\src\main\java\com\business\busmanagement\dto\LoginRequest.java
 D:\pus\BUS\backend\src\main\java\com\business\busmanagement\dto\UpdateProfileRequest.java
 D:\pus\BUS\backend\src\main\java\com\business\busmanagement\repository\PassengerRepository.java
@@ -64,6 +68,7 @@ D:\pus\BUS\backend\src\main\java\com\business\busmanagement\model\Payment.java
 D:\pus\BUS\backend\src\main\java\com\business\busmanagement\model\Seat.java
 D:\pus\BUS\backend\src\main\java\com\business\busmanagement\controller\AuthController.java
 D:\pus\BUS\backend\src\main\java\com\business\busmanagement\dto\BookTicketRequest.java
+D:\pus\BUS\backend\src\main\java\com\business\busmanagement\controller\MaintenanceController.java
 D:\pus\BUS\backend\src\main\java\com\business\busmanagement\dto\admin\RouteListResponse.java
 D:\pus\BUS\backend\src\main\java\com\business\busmanagement\model\TripAssignment.java
 D:\pus\BUS\backend\src\main\java\com\business\busmanagement\service\AdminService.java

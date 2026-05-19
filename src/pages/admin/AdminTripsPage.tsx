@@ -223,19 +223,20 @@ export default function AdminTripsPage() {
                 <th className="px-5 py-4">Khởi hành</th>
                 <th className="px-5 py-4">Đến</th>
                 <th className="px-5 py-4">Trạng thái</th>
+                <th className="px-5 py-4">Tài xế / Phụ xe</th>
                 <th className="px-5 py-4 text-right">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-14 text-center text-slate-400">
+                  <td colSpan={8} className="px-5 py-14 text-center text-slate-400">
                     Đang tải dữ liệu...
                   </td>
                 </tr>
               ) : trips.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-14 text-center text-slate-400">
+                  <td colSpan={8} className="px-5 py-14 text-center text-slate-400">
                     Không tìm thấy chuyến nào.
                   </td>
                 </tr>
@@ -265,6 +266,26 @@ export default function AdminTripsPage() {
                     </td>
                     <td className="px-5 py-4">
                       <span className="badge badge-info">{STATUS_LABELS[trip.status]}</span>
+                    </td>
+                    <td className="px-5 py-4 text-slate-600">
+                      <div className="text-xs space-y-1">
+                        {trip.assignments?.some((a: any) => a.role === 'DRIVER') ? (
+                          <div className="flex items-center gap-1">
+                            <span className="inline-block w-2 h-2 rounded-full bg-blue-500"></span>
+                            <span className="text-blue-700">Tài xế: {trip.assignments.find((a: any) => a.role === 'DRIVER')?.employeeName || 'Đã gán'}</span>
+                          </div>
+                        ) : (
+                          <div className="text-gray-400 italic">Chưa có tài xế</div>
+                        )}
+                        {trip.assignments?.some((a: any) => a.role === 'ASSISTANT') ? (
+                          <div className="flex items-center gap-1">
+                            <span className="inline-block w-2 h-2 rounded-full bg-purple-500"></span>
+                            <span className="text-purple-700">Phụ xe: {trip.assignments.find((a: any) => a.role === 'ASSISTANT')?.employeeName || 'Đã gán'}</span>
+                          </div>
+                        ) : (
+                          <div className="text-gray-400 italic">Chưa có phụ xe</div>
+                        )}
+                      </div>
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex justify-end gap-2">

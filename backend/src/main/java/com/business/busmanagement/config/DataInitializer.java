@@ -1,10 +1,12 @@
 package com.business.busmanagement.config;
 
 import com.business.busmanagement.model.Bus;
+import com.business.busmanagement.model.Employee;
 import com.business.busmanagement.model.Role;
 import com.business.busmanagement.model.Route;
 import com.business.busmanagement.model.User;
 import com.business.busmanagement.repository.BusRepository;
+import com.business.busmanagement.repository.EmployeeRepository;
 import com.business.busmanagement.repository.RoleRepository;
 import com.business.busmanagement.repository.RouteRepository;
 import com.business.busmanagement.repository.UserRepository;
@@ -29,6 +31,7 @@ public class DataInitializer implements CommandLineRunner {
     private final UserRepository userRepository;
     private final RouteRepository routeRepository;
     private final BusRepository busRepository;
+    private final EmployeeRepository employeeRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Value("${app.seed.default-password:ChangeMe@123}")
@@ -40,6 +43,7 @@ public class DataInitializer implements CommandLineRunner {
         initializeUsers();
         initializeRoutes();
         initializeBuses();
+        initializeEmployees();
 
         log.info("Data initialization completed");
     }
@@ -160,6 +164,44 @@ public class DataInitializer implements CommandLineRunner {
             Arrays.asList(bus1, bus2, bus3).forEach(busRepository::save);
 
             log.info("Buses initialized");
+        }
+    }
+
+    private void initializeEmployees() {
+        if (employeeRepository.count() == 0) {
+            // Tài xế
+            String[] drivers = {
+                "Nguyễn Văn An", "Trần Văn Bình", "Lê Đình Cường",
+                "Phạm Văn Dũng", "Hoàng Văn Em", "Đặng Văn Phong",
+                "Bùi Văn Quang", "Đỗ Văn Sơn", "Ngô Văn Tài", "Vũ Văn Thành"
+            };
+
+            // Phụ xe
+            String[] assistants = {
+                "Lý Thị Hương", "Trương Thị Lan", "Phan Thị Mai",
+                "Cao Thị Ngọc", "Đinh Thị Oanh", "Hứa Thị Phương",
+                "Châu Thị Quỳnh", "Thái Thị Thu", "Phùng Thị Vy", "Đoàn Thị Xinh"
+            };
+
+            for (String name : drivers) {
+                Employee emp = new Employee();
+                emp.setFullName(name);
+                emp.setPhone("090" + String.format("%07d", (int)(Math.random() * 10000000)));
+                emp.setEmployeeType(Employee.EmployeeType.DRIVER);
+                emp.setStatus(Employee.Status.ACTIVE);
+                employeeRepository.save(emp);
+            }
+
+            for (String name : assistants) {
+                Employee emp = new Employee();
+                emp.setFullName(name);
+                emp.setPhone("091" + String.format("%07d", (int)(Math.random() * 10000000)));
+                emp.setEmployeeType(Employee.EmployeeType.ASSISTANT);
+                emp.setStatus(Employee.Status.ACTIVE);
+                employeeRepository.save(emp);
+            }
+
+            log.info("Employees initialized: {} drivers, {} assistants", drivers.length, assistants.length);
         }
     }
 }

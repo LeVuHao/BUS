@@ -1,3 +1,4 @@
+com\business\busmanagement\repository\MaintenanceRepository.class
 com\business\busmanagement\controller\TripController.class
 com\business\busmanagement\dto\LoginRequest.class
 com\business\busmanagement\dto\admin\TicketListResponse$TripInfo.class
@@ -37,6 +38,7 @@ com\business\busmanagement\model\Cargo.class
 com\business\busmanagement\repository\TripRepository.class
 com\business\busmanagement\dto\admin\BusDetailResponse.class
 com\business\busmanagement\service\AdminService.class
+com\business\busmanagement\repository\AuditLogRepository.class
 com\business\busmanagement\dto\admin\TicketDetailResponse$SeatDetail.class
 com\business\busmanagement\model\Maintenance.class
 com\business\busmanagement\repository\RouteRepository.class
@@ -47,6 +49,7 @@ com\business\busmanagement\dto\TripCreateRequest.class
 com\business\busmanagement\dto\admin\CreateUserRequest.class
 com\business\busmanagement\model\Route.class
 com\business\busmanagement\dto\TripResponse.class
+com\business\busmanagement\repository\CargoRepository.class
 com\business\busmanagement\controller\TicketController.class
 com\business\busmanagement\dto\RegisterRequest.class
 com\business\busmanagement\dto\AuthResponse$UserDto.class
@@ -71,6 +74,7 @@ com\business\busmanagement\dto\admin\RouteDetailResponse.class
 com\business\busmanagement\repository\SeatRepository.class
 com\business\busmanagement\exception\ResourceNotFoundException.class
 com\business\busmanagement\model\Cargo$CargoStatus.class
+com\business\busmanagement\controller\MaintenanceController.class
 com\business\busmanagement\model\User$UserStatus.class
 com\business\busmanagement\repository\RoleRepository.class
 com\business\busmanagement\dto\admin\TicketDetailResponse$UserDetail.class
@@ -90,5 +94,6 @@ com\business\busmanagement\model\Payment$PaymentStatus.class
 com\business\busmanagement\dto\admin\TicketDetailResponse$PaymentDetail.class
 com\business\busmanagement\dto\admin\UpdateBusRequest.class
 com\business\busmanagement\dto\admin\TripDetailResponse$RouteInfo.class
+com\business\busmanagement\controller\CargoController.class
 com\business\busmanagement\dto\admin\AdminDashboardResponse$BusStatusCount.class
 com\business\busmanagement\model\Maintenance$MaintenanceStatus.class
