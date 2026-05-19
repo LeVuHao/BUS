@@ -144,28 +144,58 @@ public class DataInitializer implements CommandLineRunner {
 
     private void initializeBuses() {
         if (busRepository.count() == 0) {
-            Bus bus1 = new Bus();
-            bus1.setLicensePlate("29A-12345");
-            bus1.setBusType(Bus.BusType.SLEEPER);
-            bus1.setTotalSeats(40);
-            bus1.setStatus(Bus.BusStatus.AVAILABLE);
+            // ============== 20 XE KHÁCH THỰC TẾ ==============
+            
+            // === LIMOUSINE (9 chỗ cao cấp) ===
+            Bus limo1 = createBus("29B-111.11", Bus.BusType.LIMOUSINE, 9, Bus.BusStatus.AVAILABLE);
+            Bus limo2 = createBus("30B-222.22", Bus.BusType.LIMOUSINE, 9, Bus.BusStatus.AVAILABLE);
+            Bus limo3 = createBus("51B-333.33", Bus.BusType.LIMOUSINE, 9, Bus.BusStatus.AVAILABLE);
+            Bus limo4 = createBus("43B-444.44", Bus.BusType.LIMOUSINE, 9, Bus.BusStatus.AVAILABLE);
+            Bus limo5 = createBus("88B-555.55", Bus.BusType.LIMOUSINE, 9, Bus.BusStatus.AVAILABLE);
+            
+            // === GIƯỜNG NẰM CAO CẤP (34 chỗ) ===
+            Bus sleeper1 = createBus("29A-100.01", Bus.BusType.SLEEPER, 34, Bus.BusStatus.AVAILABLE);
+            Bus sleeper2 = createBus("30A-200.02", Bus.BusType.SLEEPER, 34, Bus.BusStatus.AVAILABLE);
+            Bus sleeper3 = createBus("51A-300.03", Bus.BusType.SLEEPER, 34, Bus.BusStatus.AVAILABLE);
+            Bus sleeper4 = createBus("43A-400.04", Bus.BusType.SLEEPER, 34, Bus.BusStatus.MAINTENANCE);
+            Bus sleeper5 = createBus("17A-500.05", Bus.BusType.SLEEPER, 34, Bus.BusStatus.AVAILABLE);
+            
+            // === GIƯỜNG NẰM THƯỜNG (40 chỗ) ===
+            Bus bed40_1 = createBus("29C-1111.1", Bus.BusType.SLEEPER, 40, Bus.BusStatus.AVAILABLE);
+            Bus bed40_2 = createBus("30C-2222.2", Bus.BusType.SLEEPER, 40, Bus.BusStatus.AVAILABLE);
+            Bus bed40_3 = createBus("51C-3333.3", Bus.BusType.SLEEPER, 40, Bus.BusStatus.AVAILABLE);
+            Bus bed40_4 = createBus("72C-4444.4", Bus.BusType.SLEEPER, 40, Bus.BusStatus.AVAILABLE);
+            Bus bed40_5 = createBus("15C-5555.5", Bus.BusType.SLEEPER, 40, Bus.BusStatus.RUNNING);
+            
+            // === GHẾ NGỒI CAO CẤP (45 chỗ) ===
+            Bus seat1 = createBus("29D-777.77", Bus.BusType.SEAT, 45, Bus.BusStatus.AVAILABLE);
+            Bus seat2 = createBus("30D-888.88", Bus.BusType.SEAT, 45, Bus.BusStatus.AVAILABLE);
+            Bus seat3 = createBus("51D-999.99", Bus.BusType.SEAT, 45, Bus.BusStatus.AVAILABLE);
+            Bus seat4 = createBus("18D-101.10", Bus.BusType.SEAT, 45, Bus.BusStatus.AVAILABLE);
+            Bus seat5 = createBus("16D-202.20", Bus.BusType.SEAT, 45, Bus.BusStatus.MAINTENANCE);
+            
+            // === GHẾ NGỒI THƯỜNG (50 chỗ) ===
+            Bus seat50_1 = createBus("29E-303.30", Bus.BusType.SEAT, 50, Bus.BusStatus.AVAILABLE);
+            
+            Arrays.asList(
+                limo1, limo2, limo3, limo4, limo5,
+                sleeper1, sleeper2, sleeper3, sleeper4, sleeper5,
+                bed40_1, bed40_2, bed40_3, bed40_4, bed40_5,
+                seat1, seat2, seat3, seat4, seat5,
+                seat50_1
+            ).forEach(busRepository::save);
 
-            Bus bus2 = new Bus();
-            bus2.setLicensePlate("30A-67890");
-            bus2.setBusType(Bus.BusType.SEAT);
-            bus2.setTotalSeats(45);
-            bus2.setStatus(Bus.BusStatus.AVAILABLE);
-
-            Bus bus3 = new Bus();
-            bus3.setLicensePlate("51A-11111");
-            bus3.setBusType(Bus.BusType.LIMOUSINE);
-            bus3.setTotalSeats(30);
-            bus3.setStatus(Bus.BusStatus.AVAILABLE);
-
-            Arrays.asList(bus1, bus2, bus3).forEach(busRepository::save);
-
-            log.info("Buses initialized");
+            log.info("Buses initialized: 5 Limousine, 5 Giường nằm cao cấp, 5 Giường nằm thường, 4 Ghế ngồi cao cấp, 1 Ghế ngồi thường = 20 xe");
         }
+    }
+    
+    private Bus createBus(String licensePlate, Bus.BusType type, int seats, Bus.BusStatus status) {
+        Bus bus = new Bus();
+        bus.setLicensePlate(licensePlate);
+        bus.setBusType(type);
+        bus.setTotalSeats(seats);
+        bus.setStatus(status);
+        return bus;
     }
 
     private void initializeEmployees() {
