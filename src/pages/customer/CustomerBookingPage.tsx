@@ -168,7 +168,7 @@ export default function CustomerBookingPage() {
       });
       setBookedTicket(ticket);
       setStep("success");
-      toast.success("Đặt vé thành công! Vé của bạn đã được xác nhận.");
+      toast.success("Đặt vé thành công! Nhân viên sẽ gọi xác nhận trước khi khởi hành.");
     } catch {
       toast.error("Đặt vé thất bại, vui lòng thử lại");
     } finally {
@@ -524,9 +524,9 @@ export default function CustomerBookingPage() {
             <h2 className="text-xl font-bold text-slate-900">
               Đặt vé thành công!
             </h2>
-            <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-700">
+            <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-700">
               <Check className="h-4 w-4" />
-              Đã xác nhận
+              Chờ xác nhận
             </div>
             <p className="mt-2 text-sm text-slate-500">
               Mã vé{" "}
@@ -537,7 +537,7 @@ export default function CustomerBookingPage() {
           </div>
 
           {/* Ticket card */}
-          <div className="mx-auto max-w-sm space-y-3 rounded-2xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-5 text-sm">
+          <div className="mx-auto max-w-sm space-y-3 rounded-2xl border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-white p-5 text-sm">
             <div className="text-center text-base font-bold text-[#0F2849]">
               {selectedTrip.origin} → {selectedTrip.destination}
             </div>
@@ -554,15 +554,15 @@ export default function CustomerBookingPage() {
                 <span className="font-medium text-slate-800">{value}</span>
               </div>
             ))}
-            <div className="flex justify-between border-t border-emerald-200 pt-2 mt-2">
-              <span className="font-semibold text-emerald-700">Thanh toán</span>
-              <span className="font-bold text-emerald-600 text-base">
+            <div className="flex justify-between border-t border-blue-200 pt-2 mt-2">
+              <span className="font-semibold text-blue-700">Thanh toán</span>
+              <span className="font-bold text-blue-600 text-base">
                 COD - Khi lên xe
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="font-semibold text-emerald-700">Giá vé</span>
-              <span className="font-bold text-emerald-600 text-base">
+              <span className="font-semibold text-blue-700">Giá vé</span>
+              <span className="font-bold text-blue-600 text-base">
                 {fmtPrice(selectedTrip.basePrice)}
               </span>
             </div>
@@ -572,7 +572,7 @@ export default function CustomerBookingPage() {
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span>Bạn sẽ thanh toán trực tiếp cho nhân viên khi lên xe</span>
+            <span>Nhân viên sẽ gọi xác nhận trước khi khởi hành</span>
           </div>
 
           <div className="mt-6 flex justify-center gap-3">

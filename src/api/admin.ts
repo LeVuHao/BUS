@@ -288,10 +288,17 @@ export async function deleteAdminTrip(id: number): Promise<void> {
 
 
 export const getAllTicketsForAdmin = async (): Promise<AdminTicket[]> => {
-  // SỬA ĐƯỜNG DẪN Ở ĐÂY THÊM CHỮ /all
-  const response = await apiClient.get('/admin/tickets/all'); 
+  const response = await apiClient.get('/admin/tickets/all');
   return response.data;
 }
+
+export const confirmTicket = async (ticketId: number): Promise<void> => {
+  await apiClient.put(`/admin/tickets/${ticketId}/confirm`);
+};
+
+export const cancelTicketByAdmin = async (ticketId: number): Promise<void> => {
+  await apiClient.put(`/admin/tickets/${ticketId}/admin-cancel`);
+};
 export const assignStaffToTrip = async (tripId: number, driverId: number | null, assistantId: number | null) => {
   const response = await apiClient.post(`/admin/trip-assignments/${tripId}`, {
     driverId,

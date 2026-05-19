@@ -4,11 +4,13 @@ import { Link, useNavigate } from "react-router-dom";
 import { getMyTickets, cancelTicket, mockPayment, TicketRecord } from "../../api/customer";
 
 const STATUS_MAP: Record<string, { label: string; style: string }> = {
-  BOOKED: { label: "Chờ xác nhận", style: "bg-amber-100 text-amber-800" },
-  HOLD: { label: "Chờ thanh toán", style: "bg-blue-100 text-blue-800" },
+  BOOKED: { label: "Đã giữ chỗ", style: "bg-amber-100 text-amber-800" },
+  HOLD: { label: "Chờ xác nhận", style: "bg-blue-100 text-blue-800" },
+  CONFIRMED: { label: "Đã xác nhận", style: "bg-purple-100 text-purple-800" },
   PAID: { label: "Đã thanh toán", style: "bg-emerald-100 text-emerald-800" },
   CANCELLED: { label: "Đã hủy", style: "bg-red-100 text-red-700" },
   REFUNDED: { label: "Hoàn tiền", style: "bg-slate-100 text-slate-600" },
+  EXPIRED: { label: "Hết hạn", style: "bg-slate-100 text-slate-500" },
 };
 
 const fmtDateTime = (dt: string) =>

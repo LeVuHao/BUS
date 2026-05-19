@@ -1,17 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { AdminTicket } from '../../types';
-import { getAllTicketsForAdmin } from '../../api/admin';
+import { getAllTicketsForAdmin, confirmTicket, cancelTicketByAdmin } from '../../api/admin';
 import StatusBadge from '../../components/ui/StatusBadge';
-import { Search, Download, Filter } from 'lucide-react';
+import { Search, Download, Filter, Check, X, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
+import toast from 'react-hot-toast';
 
 const AdminTicketsPage: React.FC = () => {
   const [tickets, setTickets] = useState<AdminTicket[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // State quản lý tìm kiếm và bộ lọc
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+
+  // State quản lý hành động xác nhận / hủy vé
+  const [actionTicketId, setActionTicketId] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchTickets = async () => {
@@ -38,6 +42,34 @@ const AdminTicketsPage: React.FC = () => {
 
     return matchSearch && matchStatus;
   });
+
+  const handleConfirm = async (ticketId: number) => {
+    if (!window.confirm('Xác nhận đã gọi điện và thông tin chính xác cho vé này?')) return;
+    setActionTicketId(ticketId);
+    try {
+      await confirmTicket(ticketId);
+      setTickets(prev => prev.map(t => t.ticketId === ticketId ? { ...t, status: 'CONFIRMED' } : t));
+      toast.success('Đã xác nhận vé thành công!');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Xác nhận vé thất bại');
+    } finally {
+      setActionTicketId(null);
+    }
+  };
+
+  const handleCancel = async (ticketId: number) => {
+    if (!window.confirm('Hủy vé này? Lịch sử đặt vé vẫn được lưu lại.')) return;
+    setActionTicketId(ticketId);
+    try {
+      await cancelTicketByAdmin(ticketId);
+      setTickets(prev => prev.map(t => t.ticketId === ticketId ? { ...t, status: 'CANCELLED' } : t));
+      toast.success('Đã hủy vé thành công!');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Hủy vé thất bại');
+    } finally {
+      setActionTicketId(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -77,11 +109,12 @@ const AdminTicketsPage: React.FC = () => {
             onChange={(e) => setStatusFilter(e.target.value)}
           >
             <option value="ALL">Tất cả trạng thái</option>
-            <option value="BOOKED">Chờ thanh toán (BOOKED)</option>
+            <option value="HOLD">Chờ xác nhận (HOLD)</option>
+            <option value="CONFIRMED">Đã xác nhận (CONFIRMED)</option>
             <option value="PAID">Đã thanh toán (PAID)</option>
-            <option value="HOLD">Đang giữ chỗ (HOLD)</option>
             <option value="CANCELLED">Đã hủy (CANCELLED)</option>
             <option value="REFUNDED">Đã hoàn tiền (REFUNDED)</option>
+            <option value="BOOKED">Đã giữ chỗ (BOOKED)</option>
             <option value="EXPIRED">Hết hạn (EXPIRED)</option>
           </select>
         </div>
@@ -126,7 +159,33 @@ const AdminTicketsPage: React.FC = () => {
                       {format(new Date(ticket.bookedAt), 'HH:mm dd/MM/yyyy')}
                     </td>
                     <td className="px-6 py-4">
-                      <StatusBadge status={ticket.status} />
+                      <div className="flex flex-col gap-2">
+                        <StatusBadge status={ticket.status} />
+                        {ticket.status === 'HOLD' && (
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleConfirm(ticket.ticketId)}
+                              disabled={actionTicketId === ticket.ticketId}
+                              className="flex items-center gap-1 px-3 py-1.5 bg-emerald-500 text-white text-xs font-semibold rounded-lg hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                              {actionTicketId === ticket.ticketId ? (
+                                <Loader2 size={12} className="animate-spin" />
+                              ) : (
+                                <Check size={12} />
+                              )}
+                              Xác nhận
+                            </button>
+                            <button
+                              onClick={() => handleCancel(ticket.ticketId)}
+                              disabled={actionTicketId === ticket.ticketId}
+                              className="flex items-center gap-1 px-3 py-1.5 bg-red-500 text-white text-xs font-semibold rounded-lg hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                              <X size={12} />
+                              Hủy
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))

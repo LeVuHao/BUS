@@ -29,7 +29,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("""
             SELECT t.seat.id FROM Ticket t
             WHERE t.trip.id = :tripId
-              AND t.status NOT IN ('CANCELLED', 'REFUNDED')
+              AND t.status NOT IN ('CANCELLED', 'REFUNDED', 'HOLD', 'CONFIRMED')
             """)
     List<Long> findBookedSeatIdsByTripId(@Param("tripId") Long tripId);
 

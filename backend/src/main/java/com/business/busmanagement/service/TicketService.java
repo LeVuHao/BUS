@@ -21,7 +21,6 @@ public class TicketService {
     private final SeatRepository seatRepository;
     private final PassengerRepository passengerRepository;
     private final UserRepository userRepository;
-    private final PaymentRepository paymentRepository;
 
     @Transactional
     public Ticket bookTicket(Long tripId, Long seatId, Long passengerId, Long bookedById, BigDecimal price) {
@@ -56,33 +55,27 @@ public class TicketService {
         if (existingTicket.isPresent()) {
             ticket = existingTicket.get();
             if (ticket.getStatus() != Ticket.TicketStatus.CANCELLED
-                    && ticket.getStatus() != Ticket.TicketStatus.REFUNDED) {
+                    && ticket.getStatus() != Ticket.TicketStatus.REFUNDED
+                    && ticket.getStatus() != Ticket.TicketStatus.HOLD
+                    && ticket.getStatus() != Ticket.TicketStatus.CONFIRMED) {
                 throw new IllegalStateException("Ghế này đã được đặt cho chuyến này");
             }
 
             ticket.setPrice(price);
-            ticket.setStatus(Ticket.TicketStatus.PAID);
+            ticket.setStatus(Ticket.TicketStatus.HOLD);
             ticket.setBookedAt(LocalDateTime.now());
-            ticket.setPaidAt(LocalDateTime.now());
+            ticket.setPaidAt(null);
         } else {
             ticket = new Ticket();
             ticket.setTrip(trip);
             ticket.setSeat(seat);
             ticket.setPrice(price);
-            ticket.setStatus(Ticket.TicketStatus.PAID);
+            ticket.setStatus(Ticket.TicketStatus.HOLD);
             ticket.setBookedAt(LocalDateTime.now());
-            ticket.setPaidAt(LocalDateTime.now());
+            ticket.setPaidAt(null);
         }
 
-        // Tự động tạo Payment CASH khi đặt vé (COD - Thanh toán khi nhận xe)
-        Payment payment = new Payment();
-        payment.setTicket(ticket);
-        payment.setAmount(price);
-        payment.setPaymentMethod(Payment.PaymentMethod.CASH);
-        payment.setStatus(Payment.PaymentStatus.SUCCESS);
-        payment.setTransactionCode("CASH-" + System.currentTimeMillis());
-        payment.setPaidAt(LocalDateTime.now());
-        ticket.setPayment(payment);
+        // Payment sẽ được tạo tự động khi admin xác nhận vé (COD)
 
         if (passengerId != null) {
             Passenger passenger = passengerRepository.findById(passengerId)
@@ -98,7 +91,6 @@ public class TicketService {
 
         try {
             Ticket savedTicket = ticketRepository.save(ticket);
-            paymentRepository.save(payment);
             return savedTicket;
         } catch (DataIntegrityViolationException ex) {
             throw new IllegalStateException("Ghế đã được đặt bởi người khác. Vui lòng thử ghế khác.", ex);

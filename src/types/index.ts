@@ -10,6 +10,7 @@ export type TripStatus =
 export type TicketStatus =
   | "BOOKED"
   | "HOLD"
+  | "CONFIRMED"
   | "EXPIRED"
   | "PAID"
   | "CANCELLED"
@@ -117,7 +118,7 @@ export interface AdminTicket {
   passengerPhone: string;
   bookedAt: string;
   price: number;
-  status: 'BOOKED' | 'HOLD' | 'EXPIRED' | 'PAID' | 'CANCELLED' | 'REFUNDED';
+  status: 'BOOKED' | 'HOLD' | 'CONFIRMED' | 'EXPIRED' | 'PAID' | 'CANCELLED' | 'REFUNDED';
 }
 export interface Employee {
   id: number;

@@ -36,6 +36,7 @@ public class AdminService {
     private final TicketRepository ticketRepository;
     private final TripService tripService;
     private final SeatRepository seatRepository;
+    private final PaymentRepository paymentRepository;
     private final PasswordEncoder passwordEncoder;
 
     // ==================== DASHBOARD ====================
@@ -680,6 +681,7 @@ public class AdminService {
     /**
      * Admin xác nhận vé sau khi gọi điện cho khách.
      * Chỉ vé đang ở trạng thái HOLD mới có thể xác nhận.
+     * Tự động tạo Payment CASH (COD) khi xác nhận.
      */
     @Transactional
     public TicketDetailResponse confirmTicket(Long id) {
@@ -691,13 +693,28 @@ public class AdminService {
         }
 
         ticket.setStatus(Ticket.TicketStatus.CONFIRMED);
+        ticket.setPaidAt(java.time.LocalDateTime.now());
 
-        return toTicketDetailResponse(ticketRepository.save(ticket));
+        // Tạo Payment COD khi xác nhận thành công
+        Payment payment = new Payment();
+        payment.setTicket(ticket);
+        payment.setAmount(ticket.getPrice());
+        payment.setPaymentMethod(Payment.PaymentMethod.CASH);
+        payment.setStatus(Payment.PaymentStatus.SUCCESS);
+        payment.setTransactionCode("CASH-" + System.currentTimeMillis());
+        payment.setPaidAt(java.time.LocalDateTime.now());
+        ticket.setPayment(payment);
+
+        Ticket saved = ticketRepository.save(ticket);
+        paymentRepository.save(payment);
+
+        return toTicketDetailResponse(saved);
     }
 
     /**
      * Admin hủy vé khi không xác nhận được với khách.
      * Chỉ vé đang ở trạng thái HOLD mới có thể hủy bởi admin.
+     * Ghế sẽ được giải phóng để đặt lại.
      */
     @Transactional
     public TicketDetailResponse adminCancelTicket(Long id) {
