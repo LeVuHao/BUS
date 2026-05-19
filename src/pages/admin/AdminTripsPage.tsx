@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Pencil, Trash2, X } from "lucide-react";
+import { Plus, Pencil, Trash2, X, MapPin, Clock, Bus, Users, Search, RefreshCw } from "lucide-react";
 import toast from "react-hot-toast";
 import {
   AdminBus,
@@ -11,12 +11,18 @@ import {
   getBuses,
   getRoutes,
   updateAdminTrip,
-  getEmployeesByType, // <-- THÊM MỚI
-  assignStaffToTrip,   // <-- THÊM MỚI
-  getStaffByTrip
+  getEmployeesByType,
+  assignStaffToTrip,
+  getStaffByTrip,
 } from "../../api/admin";
 import { Employee, TripStatus } from "../../types";
 import { extractApiErrorMessage } from "../../utils/apiError";
+
+const LOCATIONS = [
+  "Hà Nội", "TP.HCM", "Đà Nẵng", "Cần Thơ", "Huế",
+  "Nha Trang", "Vũng Tàu", "Đà Lạt", "Hải Phòng", "Quảng Ninh",
+  "Bình Dương", "Cà Mau", "An Giang", "Kiên Giang", "Nghệ An"
+];
 
 const TRIP_STATUS_OPTIONS: { value: TripStatus | ""; label: string }[] = [
   { value: "", label: "Tất cả" },
@@ -27,27 +33,30 @@ const TRIP_STATUS_OPTIONS: { value: TripStatus | ""; label: string }[] = [
   { value: "DELAYED", label: "Trễ" },
 ];
 
-const STATUS_LABELS: Record<TripStatus, string> = {
-  SCHEDULED: "Đã lên lịch",
-  RUNNING: "Đang chạy",
-  COMPLETED: "Hoàn thành",
-  CANCELLED: "Đã hủy",
-  DELAYED: "Trễ",
+const STATUS_CONFIG: Record<TripStatus, { label: string; color: string; bgClass: string }> = {
+  SCHEDULED: { label: "Đã lên lịch", color: "text-blue-600", bgClass: "bg-blue-100" },
+  RUNNING: { label: "Đang chạy", color: "text-emerald-600", bgClass: "bg-emerald-100" },
+  COMPLETED: { label: "Hoàn thành", color: "text-slate-600", bgClass: "bg-slate-100" },
+  CANCELLED: { label: "Đã hủy", color: "text-red-600", bgClass: "bg-red-100" },
+  DELAYED: { label: "Trễ", color: "text-amber-600", bgClass: "bg-amber-100" },
 };
+
+const fmtDateTime = (dt: string) => new Date(dt).toLocaleString("vi-VN", {
+  hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit", year: "numeric"
+});
 
 export default function AdminTripsPage() {
   const [trips, setTrips] = useState<AdminTrip[]>([]);
   const [routes, setRoutes] = useState<AdminRoute[]>([]);
   const [buses, setBuses] = useState<AdminBus[]>([]);
-
-  // ĐƯA 2 STATE NÀY VÀO BÊN TRONG COMPONENT
   const [drivers, setDrivers] = useState<Employee[]>([]);
   const [assistants, setAssistants] = useState<Employee[]>([]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [filterRouteId, setFilterRouteId] = useState<number | "">("");
   const [filterStatus, setFilterStatus] = useState<TripStatus | "">("");
+  const [filterRouteId, setFilterRouteId] = useState<number | "">("");
+  const [searchKeyword, setSearchKeyword] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingTrip, setEditingTrip] = useState<null | any>(null);
 
@@ -66,14 +75,13 @@ export default function AdminTripsPage() {
     }
   }, [filterRouteId, filterStatus]);
 
-  // CẬP NHẬT: Tải thêm danh sách Tài xế và Phụ xe cùng lúc
   const loadFormData = useCallback(async () => {
     try {
       const [routeData, busData, driverData, assistantData] = await Promise.all([
         getRoutes({ activeOnly: true }),
         getBuses(),
-        getEmployeesByType('DRIVER'),
-        getEmployeesByType('ASSISTANT')
+        getEmployeesByType("DRIVER"),
+        getEmployeesByType("ASSISTANT"),
       ]);
       setRoutes(routeData);
       setBuses(busData);
@@ -92,32 +100,45 @@ export default function AdminTripsPage() {
     loadTrips();
   }, [loadTrips]);
 
+  const filteredTrips = trips.filter((trip) => {
+    if (!searchKeyword) return true;
+    const kw = searchKeyword.toLowerCase();
+    return (
+      trip.routeName.toLowerCase().includes(kw) ||
+      trip.busLabel.toLowerCase().includes(kw) ||
+      `#${trip.id}`.includes(kw)
+    );
+  });
+
   const handleSaveTrip = async (form: TripFormValues) => {
     setIsSaving(true);
     try {
       let currentTripId = editingTrip?.id;
 
-      // 1. LƯU CHUYẾN ĐI TRƯỚC
-      if (editingTrip) {
-        await updateAdminTrip(currentTripId, {
-          routeId: form.routeId,
-          busId: form.busId,
-          departureTime: form.departureTime,
-          arrivalTime: form.arrivalTime,
-          status: form.status,
-        });
+      const payload: any = {
+        busId: form.busId,
+        departureTime: form.departureTime,
+        arrivalTime: form.arrivalTime,
+        status: form.status,
+      };
+
+      if (form.useExistingRoute && form.routeId) {
+        payload.routeId = form.routeId;
       } else {
-        const newTrip: any = await createAdminTrip({
-          routeId: form.routeId,
-          busId: form.busId,
-          departureTime: form.departureTime,
-          arrivalTime: form.arrivalTime,
-          status: form.status,
-        });
-        currentTripId = newTrip?.id || newTrip?.data?.id; // Lấy ID của chuyến mới tạo
+        payload.origin = form.origin;
+        payload.destination = form.destination;
+        if (form.basePrice) payload.basePrice = form.basePrice;
+        if (form.distanceKm) payload.distanceKm = form.distanceKm;
+        if (form.estimatedDurationMin) payload.estimatedDurationMin = form.estimatedDurationMin;
       }
 
-      // 2. SAU KHI LƯU CHUYẾN THÀNH CÔNG -> GỌI API PHÂN CÔNG NHÂN SỰ
+      if (editingTrip) {
+        await updateAdminTrip(currentTripId, payload);
+      } else {
+        const newTrip: any = await createAdminTrip(payload);
+        currentTripId = newTrip?.id || newTrip?.data?.id;
+      }
+
       if (currentTripId) {
         await assignStaffToTrip(
           currentTripId,
@@ -126,7 +147,7 @@ export default function AdminTripsPage() {
         );
       }
 
-      toast.success(editingTrip ? "Cập nhật chuyến và nhân sự thành công" : "Tạo chuyến mới thành công");
+      toast.success(editingTrip ? "Cập nhật chuyến thành công" : "Tạo chuyến mới thành công");
       setShowModal(false);
       setEditingTrip(null);
       await loadTrips();
@@ -138,10 +159,7 @@ export default function AdminTripsPage() {
   };
 
   const handleDeleteTrip = async (tripId: number) => {
-    if (!window.confirm("Bạn có chắc muốn xoá chuyến này?")) {
-      return;
-    }
-
+    if (!window.confirm("Bạn có chắc muốn xoá chuyến này?")) return;
     try {
       await deleteAdminTrip(tripId);
       toast.success("Đã xoá chuyến");
@@ -152,198 +170,234 @@ export default function AdminTripsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <section className="admin-panel p-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="mb-2 text-xs font-bold uppercase tracking-[0.24em] text-slate-400">
-              Trip Management
-            </p>
-            <h1 className="admin-title text-3xl">Quản lý chuyến</h1>
-            <p className="admin-subtitle mt-2 text-sm">
-              Lên lịch, phân công nhân sự và quản lý các chuyến xe trên hệ thống.
-            </p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+      {/* Animated background */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-cyan-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "1s" }} />
+        <div className="absolute top-1/2 right-1/3 w-72 h-72 bg-indigo-500/15 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "2s" }} />
+      </div>
+
+      <div className="relative z-10 space-y-6 p-6">
+        {/* Header */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-8 shadow-2xl">
+          <div className="absolute inset-0 opacity-20">
+            <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+              <path d="M0,50 Q25,30 50,50 T100,50 L100,100 L0,100 Z" fill="white" />
+            </svg>
           </div>
 
-          <button
-            onClick={() => {
-              setEditingTrip(null);
-              setShowModal(true);
-            }}
-            className="admin-button-primary inline-flex items-center justify-center gap-2 px-5 py-3 text-sm"
+          <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <p className="text-blue-200 text-xs font-bold uppercase tracking-widest mb-1">Trip Management</p>
+              <h1 className="text-3xl md:text-4xl font-bold text-white">Quản lý chuyến xe</h1>
+              <p className="text-blue-200/80 text-sm mt-2">Tạo và quản lý chuyến xe với tuyến đường linh hoạt</p>
+            </div>
+
+            <button
+              onClick={() => { setEditingTrip(null); setShowModal(true); }}
+              className="group relative inline-flex items-center gap-2 px-6 py-3 bg-white text-blue-600 font-semibold rounded-2xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
+            >
+              <Plus className="w-5 h-5" />
+              <span>Tạo chuyến mới</span>
+            </button>
+          </div>
+
+          {/* Stats */}
+          <div className="relative grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+            {[
+              { label: "Tổng chuyến", value: trips.length, icon: "🚌" },
+              { label: "Đang chạy", value: trips.filter(t => t.status === "RUNNING").length, icon: "🚍" },
+              { label: "Đã lên lịch", value: trips.filter(t => t.status === "SCHEDULED").length, icon: "📅" },
+              { label: "Hoàn thành", value: trips.filter(t => t.status === "COMPLETED").length, icon: "✅" },
+            ].map((stat) => (
+              <div key={stat.label} className="bg-white/10 backdrop-blur-sm rounded-xl p-3 text-center">
+                <div className="text-2xl mb-1">{stat.icon}</div>
+                <div className="text-2xl font-bold text-white">{stat.value}</div>
+                <div className="text-blue-200 text-xs">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-wrap items-center gap-4 p-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              value={searchKeyword}
+              onChange={(e) => setSearchKeyword(e.target.value)}
+              placeholder="Tìm kiếm chuyến xe..."
+              className="w-full pl-10 pr-4 py-2.5 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <select
+            value={filterRouteId}
+            onChange={(e) => setFilterRouteId(Number(e.target.value) || "")}
+            className="px-4 py-2.5 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[150px]"
           >
-            <Plus className="h-4 w-4" />
-            Tạo chuyến mới
+            <option value="">Tất cả tuyến</option>
+            {routes.map((route) => (
+              <option key={route.id} value={route.id}>
+                {route.origin} → {route.destination}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value as TripStatus | "")}
+            className="px-4 py-2.5 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[150px]"
+          >
+            {TRIP_STATUS_OPTIONS.map((item) => (
+              <option key={item.value} value={item.value}>{item.label}</option>
+            ))}
+          </select>
+
+          <button
+            onClick={loadTrips}
+            className="p-2.5 bg-white/10 border border-white/20 rounded-xl text-white hover:bg-white/20 transition-colors"
+          >
+            <RefreshCw className="w-5 h-5" />
           </button>
         </div>
-      </section>
 
-      <section className="admin-panel flex flex-wrap items-center gap-3 p-4">
-        <select
-          value={filterRouteId}
-          onChange={(event) => setFilterRouteId(Number(event.target.value) || "")}
-          className="admin-select px-3 py-2 text-sm outline-none"
-        >
-          <option value="">Tất cả tuyến</option>
-          {routes.map((route) => (
-            <option key={route.id} value={route.id}>
-              {route.origin} → {route.destination}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={filterStatus}
-          onChange={(event) => setFilterStatus(event.target.value as TripStatus | "")}
-          className="admin-select px-3 py-2 text-sm outline-none"
-        >
-          {TRIP_STATUS_OPTIONS.map((item) => (
-            <option key={item.value} value={item.value}>
-              {item.label}
-            </option>
-          ))}
-        </select>
-
-        <button
-          onClick={loadTrips}
-          className="admin-button-secondary px-4 py-2 text-sm"
-        >
-          Làm mới
-        </button>
-      </section>
-
-      <section className="admin-panel overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="admin-table min-w-full divide-y divide-slate-200 text-left text-sm">
-            <thead>
-              <tr>
-                <th className="px-5 py-4">ID</th>
-                <th className="px-5 py-4">Tuyến</th>
-                <th className="px-5 py-4">Xe</th>
-                <th className="px-5 py-4">Khởi hành</th>
-                <th className="px-5 py-4">Đến</th>
-                <th className="px-5 py-4">Trạng thái</th>
-                <th className="px-5 py-4">Tài xế / Phụ xe</th>
-                <th className="px-5 py-4 text-right">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={8} className="px-5 py-14 text-center text-slate-400">
-                    Đang tải dữ liệu...
-                  </td>
+        {/* Trips Table */}
+        <div className="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 overflow-hidden shadow-xl">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-white/10 border-b border-white/20">
+                  <th className="px-6 py-4 text-xs font-semibold text-slate-300 uppercase tracking-wider">Chuyến</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-slate-300 uppercase tracking-wider">Tuyến đường</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-slate-300 uppercase tracking-wider">Xe</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-slate-300 uppercase tracking-wider">Khởi hành</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-slate-300 uppercase tracking-wider">Đến</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-slate-300 uppercase tracking-wider">Trạng thái</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-slate-300 uppercase tracking-wider">Nhân sự</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-slate-300 uppercase tracking-wider text-right">Thao tác</th>
                 </tr>
-              ) : trips.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-5 py-14 text-center text-slate-400">
-                    Không tìm thấy chuyến nào.
-                  </td>
-                </tr>
-              ) : (
-                trips.map((trip) => (
-                  <tr key={trip.id}>
-                    <td className="px-5 py-4 font-semibold text-slate-900">#{trip.id}</td>
-                    <td className="px-5 py-4 text-slate-600">{trip.routeName}</td>
-                    <td className="px-5 py-4 text-slate-600">{trip.busLabel}</td>
-                    <td className="px-5 py-4 text-slate-600">
-                      {new Date(trip.departureTime).toLocaleString("vi-VN", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        day: "2-digit",
-                        month: "2-digit",
-                        year: "numeric",
-                      })}
-                    </td>
-                    <td className="px-5 py-4 text-slate-600">
-                      {new Date(trip.arrivalTime).toLocaleString("vi-VN", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        day: "2-digit",
-                        month: "2-digit",
-                        year: "numeric",
-                      })}
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className="badge badge-info">{STATUS_LABELS[trip.status]}</span>
-                    </td>
-                    <td className="px-5 py-4 text-slate-600">
-                      <div className="text-xs space-y-1">
-                        {trip.assignments?.some((a: any) => a.role === 'DRIVER') ? (
-                          <div className="flex items-center gap-1">
-                            <span className="inline-block w-2 h-2 rounded-full bg-blue-500"></span>
-                            <span className="text-blue-700">Tài xế: {trip.assignments.find((a: any) => a.role === 'DRIVER')?.employeeName || 'Đã gán'}</span>
-                          </div>
-                        ) : (
-                          <div className="text-gray-400 italic">Chưa có tài xế</div>
-                        )}
-                        {trip.assignments?.some((a: any) => a.role === 'ASSISTANT') ? (
-                          <div className="flex items-center gap-1">
-                            <span className="inline-block w-2 h-2 rounded-full bg-purple-500"></span>
-                            <span className="text-purple-700">Phụ xe: {trip.assignments.find((a: any) => a.role === 'ASSISTANT')?.employeeName || 'Đã gán'}</span>
-                          </div>
-                        ) : (
-                          <div className="text-gray-400 italic">Chưa có phụ xe</div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          title="Sửa"
-                          onClick={async () => {
-                            try {
-                              // Gọi API lấy nhân sự đang được phân công cho chuyến này
-                              const assignments = await getStaffByTrip(trip.id);
-                              const driver = assignments.find((a: any) => a.assignmentRole === 'DRIVER');
-                              const assistant = assignments.find((a: any) => a.assignmentRole === 'ASSISTANT');
-
-                              // Nhét ID tìm được vào dữ liệu chuyến đi rồi mới mở Form
-                              setEditingTrip({
-                                ...trip,
-                                driverId: driver ? driver.employeeId : "",
-                                assistantId: assistant ? assistant.employeeId : ""
-                              });
-                              setShowModal(true);
-                            } catch (error) {
-                              console.error("Lỗi lấy nhân sự", error);
-                              setEditingTrip(trip); // Nếu lỗi thì vẫn mở form bình thường
-                              setShowModal(true);
-                            }
-                          }}
-                          className="rounded-xl p-2 text-slate-400 transition hover:bg-blue-50 hover:text-blue-600"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button
-                          title="Xoá"
-                          onClick={() => handleDeleteTrip(trip.id)}
-                          className="rounded-xl p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-600"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+              </thead>
+              <tbody className="divide-y divide-white/10">
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={8} className="px-6 py-16 text-center">
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="w-10 h-10 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+                        <span className="text-slate-400">Đang tải dữ liệu...</span>
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : filteredTrips.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-6 py-16 text-center text-slate-400">
+                      Không tìm thấy chuyến nào phù hợp
+                    </td>
+                  </tr>
+                ) : (
+                  filteredTrips.map((trip) => (
+                    <tr key={trip.id} className="hover:bg-white/5 transition-colors">
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold text-sm">
+                          #{trip.id}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <MapPin className="w-4 h-4 text-emerald-400" />
+                          <span className="text-white font-medium">{trip.routeName}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <Bus className="w-4 h-4 text-cyan-400" />
+                          <span className="text-slate-300">{trip.busLabel}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-amber-400" />
+                          <span className="text-slate-300 text-sm">{fmtDateTime(trip.departureTime)}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-slate-300 text-sm">{fmtDateTime(trip.arrivalTime)}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex px-3 py-1.5 rounded-full text-xs font-semibold ${STATUS_CONFIG[trip.status]?.bgClass} ${STATUS_CONFIG[trip.status]?.color}`}>
+                          {STATUS_CONFIG[trip.status]?.label}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col gap-1">
+                          {trip.assignments?.some((a: any) => a.role === "DRIVER") ? (
+                            <div className="flex items-center gap-1 text-xs">
+                              <span className="w-2 h-2 rounded-full bg-blue-400" />
+                              <span className="text-slate-300">Tài xế: {trip.assignments.find((a: any) => a.role === "DRIVER")?.employeeName}</span>
+                            </div>
+                          ) : (
+                            <div className="text-xs text-slate-500 italic">Chưa có tài xế</div>
+                          )}
+                          {trip.assignments?.some((a: any) => a.role === "ASSISTANT") ? (
+                            <div className="flex items-center gap-1 text-xs">
+                              <span className="w-2 h-2 rounded-full bg-purple-400" />
+                              <span className="text-slate-300">Phụ xe: {trip.assignments.find((a: any) => a.role === "ASSISTANT")?.employeeName}</span>
+                            </div>
+                          ) : (
+                            <div className="text-xs text-slate-500 italic">Chưa có phụ xe</div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={async () => {
+                              try {
+                                const assignments = await getStaffByTrip(trip.id);
+                                const driver = assignments.find((a: any) => a.assignmentRole === "DRIVER");
+                                const assistant = assignments.find((a: any) => a.assignmentRole === "ASSISTANT");
+                                setEditingTrip({
+                                  ...trip,
+                                  driverId: driver?.employeeId || "",
+                                  assistantId: assistant?.employeeId || "",
+                                });
+                                setShowModal(true);
+                              } catch {
+                                setEditingTrip(trip);
+                                setShowModal(true);
+                              }
+                            }}
+                            className="p-2 bg-blue-500/20 hover:bg-blue-500/40 text-blue-400 rounded-xl transition-all"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTrip(trip.id)}
+                            className="p-2 bg-red-500/20 hover:bg-red-500/40 text-red-400 rounded-xl transition-all"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </section>
+      </div>
 
       {showModal && (
         <TripModal
-          onClose={() => {
-            setShowModal(false);
-            setEditingTrip(null);
-          }}
+          onClose={() => { setShowModal(false); setEditingTrip(null); }}
           onSubmit={handleSaveTrip}
           isSaving={isSaving}
           routes={routes}
           buses={buses}
-          drivers={drivers}       // <-- TRUYỀN DATA TÀI XẾ XUỐNG MODAL
-          assistants={assistants} // <-- TRUYỀN DATA PHỤ XE XUỐNG MODAL
+          drivers={drivers}
+          assistants={assistants}
           initialData={editingTrip}
         />
       )}
@@ -352,24 +406,23 @@ export default function AdminTripsPage() {
 }
 
 interface TripFormValues {
-  routeId: number;
+  useExistingRoute: boolean;
+  routeId?: number;
+  origin: string;
+  destination: string;
+  basePrice?: number;
+  distanceKm?: number;
+  estimatedDurationMin?: number;
   busId: number;
   departureTime: string;
   arrivalTime: string;
-  status?: string;
-  driverId: number | "";     // <-- THÊM TRƯỜNG DỮ LIỆU
-  assistantId: number | "";  // <-- THÊM TRƯỜNG DỮ LIỆU
+  status: string;
+  driverId: number | "";
+  assistantId: number | "";
 }
 
 function TripModal({
-  onClose,
-  onSubmit,
-  isSaving,
-  routes,
-  buses,
-  drivers,
-  assistants,
-  initialData,
+  onClose, onSubmit, isSaving, routes, buses, drivers, assistants, initialData,
 }: {
   onClose: () => void;
   onSubmit: (form: TripFormValues) => void;
@@ -380,185 +433,309 @@ function TripModal({
   assistants: Employee[];
   initialData: any;
 }) {
+  const [useExistingRoute, setUseExistingRoute] = useState(!!initialData?.routeId);
+
   const [form, setForm] = useState<TripFormValues>({
-    routeId: initialData?.routeId ?? routes[0]?.id ?? 0,
-    busId: initialData?.busId ?? buses[0]?.id ?? 0,
-    departureTime: initialData?.departureTime ?? "",
-    arrivalTime: initialData?.arrivalTime ?? "",
-    status: initialData?.status ?? "SCHEDULED",
-    driverId: initialData?.driverId ?? "",
-    assistantId: initialData?.assistantId ?? "",
+    useExistingRoute: useExistingRoute,
+    routeId: initialData?.routeId || routes[0]?.id || undefined,
+    origin: initialData?.routeName?.split(" -> ")[0] || "",
+    destination: initialData?.routeName?.split(" -> ")[1] || "",
+    basePrice: initialData?.basePrice || undefined,
+    distanceKm: initialData?.distanceKm || undefined,
+    estimatedDurationMin: initialData?.estimatedDurationMin || undefined,
+    busId: initialData?.busId || buses[0]?.id || 0,
+    departureTime: initialData?.departureTime?.slice(0, 16) || "",
+    arrivalTime: initialData?.arrivalTime?.slice(0, 16) || "",
+    status: initialData?.status || "SCHEDULED",
+    driverId: initialData?.driverId || "",
+    assistantId: initialData?.assistantId || "",
   });
 
   useEffect(() => {
     setForm({
-      routeId: initialData?.routeId ?? routes[0]?.id ?? 0,
-      busId: initialData?.busId ?? buses[0]?.id ?? 0,
-      departureTime: initialData?.departureTime ?? "",
-      arrivalTime: initialData?.arrivalTime ?? "",
-      status: initialData?.status ?? "SCHEDULED",
-      driverId: initialData?.driverId ?? "",
-      assistantId: initialData?.assistantId ?? "",
+      useExistingRoute: useExistingRoute,
+      routeId: initialData?.routeId || routes[0]?.id || undefined,
+      origin: initialData?.routeName?.split(" -> ")[0] || "",
+      destination: initialData?.routeName?.split(" -> ")[1] || "",
+      basePrice: initialData?.basePrice || undefined,
+      distanceKm: initialData?.distanceKm || undefined,
+      estimatedDurationMin: initialData?.estimatedDurationMin || undefined,
+      busId: initialData?.busId || buses[0]?.id || 0,
+      departureTime: initialData?.departureTime?.slice(0, 16) || "",
+      arrivalTime: initialData?.arrivalTime?.slice(0, 16) || "",
+      status: initialData?.status || "SCHEDULED",
+      driverId: initialData?.driverId || "",
+      assistantId: initialData?.assistantId || "",
     });
   }, [initialData, routes, buses]);
 
-  const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.departureTime || !form.arrivalTime || !form.busId) {
+      toast.error("Vui lòng điền đầy đủ thông tin bắt buộc");
+      return;
+    }
+    if (!useExistingRoute && (!form.origin || !form.destination)) {
+      toast.error("Vui lòng nhập điểm đi và điểm đến");
+      return;
+    }
     onSubmit(form);
   };
 
-  const hasRouteData = routes.length > 0 && buses.length > 0;
-
   return (
-    <div className="admin-modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="admin-modal w-full max-w-2xl p-6 overflow-y-auto max-h-[90vh]">
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-900">
-            {initialData ? `Chỉnh sửa chuyến #${initialData.id}` : "Tạo chuyến mới"}
-          </h2>
-          <button
-            onClick={onClose}
-            className="rounded-xl p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
-          >
-            <X className="h-5 w-5" />
-          </button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 rounded-3xl shadow-2xl border border-white/10">
+        {/* Modal Header */}
+        <div className="sticky top-0 z-10 bg-gradient-to-r from-blue-600 to-indigo-600 p-6 rounded-t-3xl">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-white">
+                {initialData ? `Chỉnh sửa chuyến #${initialData.id}` : "Tạo chuyến mới"}
+              </h2>
+              <p className="text-blue-200 text-sm mt-1">
+                {initialData ? "Cập nhật thông tin chuyến xe" : "Thêm chuyến xe mới vào hệ thống"}
+              </p>
+            </div>
+            <button onClick={onClose} className="p-2 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid gap-4 lg:grid-cols-2">
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Route Toggle */}
+          <div className="flex gap-4 p-1 bg-white/10 rounded-xl">
+            <button
+              type="button"
+              onClick={() => setUseExistingRoute(true)}
+              className={`flex-1 py-3 px-4 rounded-xl font-medium text-sm transition-all ${
+                useExistingRoute ? "bg-white text-blue-600 shadow-lg" : "text-white/70 hover:text-white"
+              }`}
+            >
+              Chọn tuyến có sẵn
+            </button>
+            <button
+              type="button"
+              onClick={() => setUseExistingRoute(false)}
+              className={`flex-1 py-3 px-4 rounded-xl font-medium text-sm transition-all ${
+                !useExistingRoute ? "bg-white text-blue-600 shadow-lg" : "text-white/70 hover:text-white"
+              }`}
+            >
+              Tạo tuyến mới
+            </button>
+          </div>
+
+          {/* Existing Route */}
+          {useExistingRoute && (
             <div>
-              <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                Tuyến
-                <span className="text-red-500">*</span>
+              <label className="block text-sm font-semibold text-slate-300 mb-2">
+                Tuyến đường <span className="text-red-400">*</span>
               </label>
               <select
-                value={form.routeId}
-                disabled={!routes.length}
-                onChange={(event) => setForm({ ...form, routeId: Number(event.target.value) })}
-                className="admin-select w-full px-3 py-2 text-sm outline-none"
+                value={form.routeId || ""}
+                onChange={(e) => setForm({ ...form, routeId: Number(e.target.value) || undefined })}
+                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {routes.map((route) => (
-                  <option key={route.id} value={route.id}>
+                  <option key={route.id} value={route.id} className="text-slate-900">
                     {route.origin} → {route.destination}
                   </option>
                 ))}
               </select>
             </div>
+          )}
 
+          {/* New Route */}
+          {!useExistingRoute && (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-300 mb-2">
+                    Điểm đi <span className="text-red-400">*</span>
+                  </label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-400" />
+                    <select
+                      value={form.origin}
+                      onChange={(e) => setForm({ ...form, origin: e.target.value })}
+                      className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    >
+                      <option value="" className="text-slate-900">-- Chọn điểm đi --</option>
+                      {LOCATIONS.filter(l => l !== form.destination).map((l) => (
+                        <option key={l} value={l} className="text-slate-900">{l}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-300 mb-2">
+                    Điểm đến <span className="text-red-400">*</span>
+                  </label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-red-400" />
+                    <select
+                      value={form.destination}
+                      onChange={(e) => setForm({ ...form, destination: e.target.value })}
+                      className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+                    >
+                      <option value="" className="text-slate-900">-- Chọn điểm đến --</option>
+                      {LOCATIONS.filter(l => l !== form.origin).map((l) => (
+                        <option key={l} value={l} className="text-slate-900">{l}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-300 mb-2">Giá vé (VND)</label>
+                  <input
+                    type="number"
+                    value={form.basePrice || ""}
+                    onChange={(e) => setForm({ ...form, basePrice: Number(e.target.value) || undefined })}
+                    placeholder="VD: 350000"
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-300 mb-2">Khoảng cách (km)</label>
+                  <input
+                    type="number"
+                    value={form.distanceKm || ""}
+                    onChange={(e) => setForm({ ...form, distanceKm: Number(e.target.value) || undefined })}
+                    placeholder="VD: 120"
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-300 mb-2">Thời gian (phút)</label>
+                  <input
+                    type="number"
+                    value={form.estimatedDurationMin || ""}
+                    onChange={(e) => setForm({ ...form, estimatedDurationMin: Number(e.target.value) || undefined })}
+                    placeholder="VD: 180"
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Bus & Status */}
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                Xe
-                <span className="text-red-500">*</span>
+              <label className="block text-sm font-semibold text-slate-300 mb-2">
+                Xe <span className="text-red-400">*</span>
               </label>
+              <div className="relative">
+                <Bus className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-400" />
+                <select
+                  value={form.busId || ""}
+                  onChange={(e) => setForm({ ...form, busId: Number(e.target.value) })}
+                  className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                >
+                  <option value="" className="text-slate-900">-- Chọn xe --</option>
+                  {buses.map((bus) => (
+                    <option key={bus.id} value={bus.id} className="text-slate-900">
+                      {bus.licensePlate} - {bus.busType}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-300 mb-2">Trạng thái</label>
               <select
-                value={form.busId}
-                disabled={!buses.length}
-                onChange={(event) => setForm({ ...form, busId: Number(event.target.value) })}
-                className="admin-select w-full px-3 py-2 text-sm outline-none"
+                value={form.status}
+                onChange={(e) => setForm({ ...form, status: e.target.value })}
+                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                {buses.map((bus) => (
-                  <option key={bus.id} value={bus.id}>
-                    {bus.licensePlate} — {bus.busType}
-                  </option>
-                ))}
+                <option value="SCHEDULED" className="text-slate-900">Đã lên lịch</option>
+                <option value="RUNNING" className="text-slate-900">Đang chạy</option>
+                <option value="COMPLETED" className="text-slate-900">Hoàn thành</option>
+                <option value="CANCELLED" className="text-slate-900">Đã hủy</option>
+                <option value="DELAYED" className="text-slate-900">Trễ</option>
               </select>
             </div>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-2">
+          {/* Time */}
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                Ngày giờ khởi hành
-                <span className="text-red-500">*</span>
+              <label className="block text-sm font-semibold text-slate-300 mb-2">
+                Giờ khởi hành <span className="text-red-400">*</span>
               </label>
               <input
                 type="datetime-local"
                 value={form.departureTime}
-                onChange={(event) => setForm({ ...form, departureTime: event.target.value })}
-                className="admin-input w-full px-3 py-2 text-sm outline-none"
-                required
+                onChange={(e) => setForm({ ...form, departureTime: e.target.value })}
+                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-                Ngày giờ đến
-                <span className="text-red-500">*</span>
+              <label className="block text-sm font-semibold text-slate-300 mb-2">
+                Giờ đến <span className="text-red-400">*</span>
               </label>
               <input
                 type="datetime-local"
                 value={form.arrivalTime}
-                onChange={(event) => setForm({ ...form, arrivalTime: event.target.value })}
-                className="admin-input w-full px-3 py-2 text-sm outline-none"
-                required
+                onChange={(e) => setForm({ ...form, arrivalTime: e.target.value })}
+                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
 
-          {/* === BỔ SUNG KHU VỰC CHỌN NHÂN SỰ VÀO FORM === */}
-          <div className="grid grid-cols-2 gap-4 mt-4 rounded-lg border bg-slate-50 p-4">
-            <div>
-              <label className="mb-1.5 block text-sm font-semibold text-slate-700">Chọn Tài xế</label>
-              <select
-                value={form.driverId}
-                onChange={(e) => setForm({ ...form, driverId: e.target.value ? Number(e.target.value) : "" })}
-                className="admin-select w-full px-3 py-2 text-sm outline-none bg-white"
-              >
-                <option value="">-- Bỏ trống --</option>
-                {drivers.map(d => (
-                  <option key={d.id} value={d.id}>{d.fullName} ({d.phone})</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-semibold text-slate-700">Chọn Phụ xe</label>
-              <select
-                value={form.assistantId}
-                onChange={(e) => setForm({ ...form, assistantId: e.target.value ? Number(e.target.value) : "" })}
-                className="admin-select w-full px-3 py-2 text-sm outline-none bg-white"
-              >
-                <option value="">-- Bỏ trống --</option>
-                {assistants.map(a => (
-                  <option key={a.id} value={a.id}>{a.fullName} ({a.phone})</option>
-                ))}
-              </select>
+          {/* Staff */}
+          <div className="p-4 bg-white/5 rounded-xl border border-white/10">
+            <h3 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              Phân công nhân sự
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-slate-400 mb-1.5">Tài xế</label>
+                <select
+                  value={form.driverId}
+                  onChange={(e) => setForm({ ...form, driverId: e.target.value ? Number(e.target.value) : "" })}
+                  className="w-full px-3 py-2.5 bg-white/10 border border-white/20 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="" className="text-slate-900">-- Bỏ trống --</option>
+                  {drivers.map((d) => (
+                    <option key={d.id} value={d.id} className="text-slate-900">{d.fullName} ({d.phone})</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400 mb-1.5">Phụ xe</label>
+                <select
+                  value={form.assistantId}
+                  onChange={(e) => setForm({ ...form, assistantId: e.target.value ? Number(e.target.value) : "" })}
+                  className="w-full px-3 py-2.5 bg-white/10 border border-white/20 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="" className="text-slate-900">-- Bỏ trống --</option>
+                  {assistants.map((a) => (
+                    <option key={a.id} value={a.id} className="text-slate-900">{a.fullName} ({a.phone})</option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
-          <div>
-            <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-              Trạng thái
-            </label>
-            <select
-              value={form.status}
-              onChange={(event) => setForm({ ...form, status: event.target.value })}
-              className="admin-select w-full px-3 py-2 text-sm outline-none"
-            >
-              {TRIP_STATUS_OPTIONS.filter((item) => item.value !== "").map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {!hasRouteData && (
-            <div className="rounded-3xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-              Vui lòng đảm bảo hệ thống có ít nhất một tuyến và một xe đang sẵn sàng.
-            </div>
-          )}
-
-          <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:justify-end">
+          {/* Actions */}
+          <div className="flex gap-3 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="admin-button-secondary px-4 py-2 text-sm"
+              className="flex-1 py-3 px-4 bg-white/10 hover:bg-white/20 text-white font-medium rounded-xl transition-colors"
             >
               Hủy
             </button>
             <button
               type="submit"
-              disabled={isSaving || !hasRouteData}
-              className="admin-button-primary px-4 py-2 text-sm"
+              disabled={isSaving}
+              className="flex-1 py-3 px-4 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold rounded-xl shadow-lg disabled:opacity-50 transition-all"
             >
               {isSaving ? "Đang lưu..." : initialData ? "Lưu thay đổi" : "Tạo chuyến"}
             </button>

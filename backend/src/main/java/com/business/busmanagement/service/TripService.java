@@ -41,11 +41,7 @@ public class TripService {
         public TripResponse createTrip(TripCreateRequest request) {
                 validateTripTimes(request.getDepartureTime(), request.getArrivalTime());
 
-                Long routeId = Objects.requireNonNull(request.getRouteId(), "routeId is required");
                 Long busId = Objects.requireNonNull(request.getBusId(), "busId is required");
-
-                Route route = routeRepository.findById(routeId)
-                                .orElseThrow(() -> new ResourceNotFoundException("Route not found"));
                 Bus bus = busRepository.findById(busId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Bus not found"));
 
@@ -62,6 +58,9 @@ public class TripService {
                         throw new IllegalStateException("Bus already has another trip in this time range");
                 }
 
+                // Resolve route: dùng routeId có sẵn hoặc tạo mới inline
+                Route route = resolveRoute(request);
+
                 Trip trip = new Trip();
                 trip.setRoute(route);
                 trip.setBus(bus);
@@ -72,16 +71,55 @@ public class TripService {
                 return toResponse(tripRepository.save(trip));
         }
 
+        /**
+         * Resolve route: nếu có routeId thì dùng route có sẵn,
+         * nếu không thì tạo route mới từ origin/destination
+         */
+        private Route resolveRoute(TripCreateRequest request) {
+                // Ưu tiên dùng route có sẵn
+                if (request.getRouteId() != null) {
+                        return routeRepository.findById(request.getRouteId())
+                                        .orElseThrow(() -> new ResourceNotFoundException("Route not found with id: " + request.getRouteId()));
+                }
+
+                // Tạo route mới inline
+                if (request.getOrigin() == null || request.getDestination() == null) {
+                        throw new IllegalArgumentException("Either routeId or origin+destination is required");
+                }
+
+                // Kiểm tra route đã tồn tại chưa
+                String origin = request.getOrigin().trim();
+                String destination = request.getDestination().trim();
+
+                List<Route> existingRoutes = routeRepository.findAll();
+                Route existingRoute = existingRoutes.stream()
+                                .filter(r -> r.getOrigin().equalsIgnoreCase(origin)
+                                                && r.getDestination().equalsIgnoreCase(destination))
+                                .findFirst()
+                                .orElse(null);
+
+                if (existingRoute != null) {
+                        return existingRoute;
+                }
+
+                // Tạo route mới
+                Route newRoute = new Route();
+                newRoute.setOrigin(origin);
+                newRoute.setDestination(destination);
+                newRoute.setBasePrice(request.getBasePrice() != null ? request.getBasePrice() : java.math.BigDecimal.valueOf(300000));
+                newRoute.setDistanceKm(request.getDistanceKm() != null ? request.getDistanceKm() : java.math.BigDecimal.ZERO);
+                newRoute.setEstimatedDurationMin(request.getEstimatedDurationMin() != null ? request.getEstimatedDurationMin() : 60);
+                newRoute.setIsActive(true);
+
+                return routeRepository.save(newRoute);
+        }
+
         @Transactional
         public TripResponse updateTrip(Long id, TripCreateRequest request) {
                 validateTripTimes(request.getDepartureTime(), request.getArrivalTime());
 
                 Trip trip = getTripEntity(id);
-                Long routeId = Objects.requireNonNull(request.getRouteId(), "routeId is required");
                 Long busId = Objects.requireNonNull(request.getBusId(), "busId is required");
-
-                Route route = routeRepository.findById(routeId)
-                                .orElseThrow(() -> new ResourceNotFoundException("Route not found"));
                 Bus bus = busRepository.findById(busId)
                                 .orElseThrow(() -> new ResourceNotFoundException("Bus not found"));
 
@@ -97,6 +135,8 @@ public class TripService {
                 if (hasOverlap) {
                         throw new IllegalStateException("Bus already has another trip in this time range");
                 }
+
+                Route route = resolveRoute(request);
 
                 trip.setRoute(route);
                 trip.setBus(bus);

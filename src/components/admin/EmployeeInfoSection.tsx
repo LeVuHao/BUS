@@ -152,7 +152,7 @@ export default function EmployeeInfoSection() {
         getTopExperiencedDrivers()
       ]);
       setEmployees(allEmployees);
-      setTopDrivers(experiencedDrivers.slice(0, 5));
+      setTopDrivers(experiencedDrivers.filter(d => d.experienceYears).slice(0, 5) as TopDriver[]);
       setSelectedEmployee(null);
     } catch (err) {
       console.error("Failed to load employees:", err);

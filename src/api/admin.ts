@@ -232,7 +232,14 @@ export interface AdminTrip {
 }
 
 export interface CreateTripPayload {
-  routeId: number;
+  // Dùng routeId có sẵn hoặc tạo mới inline
+  routeId?: number;
+  origin?: string;        // Tạo route mới nếu routeId = null
+  destination?: string;    // Tạo route mới nếu routeId = null
+  basePrice?: number;     // Giá vé cho route mới
+  distanceKm?: number;    // Khoảng cách cho route mới
+  estimatedDurationMin?: number; // Thời gian cho route mới
+
   busId: number;
   departureTime: string;
   arrivalTime: string;

@@ -58,7 +58,7 @@ export default function CustomerTicketsPage() {
   const handlePayNow = async (ticket: TicketRecord) => {
     setPayingId(ticket.id);
     try {
-      await mockPayment(ticket.id, ticket.price);
+      await mockPayment({ ticketId: ticket.id, amount: ticket.price });
       // Reload tickets to get updated status
       const updated = await getMyTickets();
       setTickets(updated);
