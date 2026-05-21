@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
 import { useAuthStore } from "../../stores/authStore";
 import {
+  searchTrips,
   getAllUpcomingTrips,
   getTripSeats,
   bookTicket,
@@ -114,29 +115,22 @@ export default function CustomerBookingPage() {
     setStep(target);
   };
 
-  // Tìm kiếm theo origin/destination/date - vẫn giữ nguyên filter
-  const handleSearch = () => {
-    // Nếu có origin và destination thì filter, không thì hiển thị tất cả
-    if (!origin && !destination) {
-      // Không nhập gì = hiển thị tất cả chuyến trong ngày
-      loadTrips();
-      return;
-    }
-
+  // Tìm kiếm theo origin/destination/date - gọi API backend
+  const handleSearch = async () => {
     if (origin && destination && origin === destination) {
       toast.error("Điểm đi và điểm đến không được trùng nhau");
       return;
     }
 
-    // Filter trips theo origin/destination/date
-    const filtered = trips.filter((trip) => {
-      const matchOrigin = !origin ||
-        trip.origin.toLowerCase().includes(origin.toLowerCase());
-      const matchDest = !destination ||
-        trip.destination.toLowerCase().includes(destination.toLowerCase());
-      return matchOrigin && matchDest;
-    });
-    setTrips(filtered);
+    setLoadingTrips(true);
+    try {
+      const data = await searchTrips({ origin, destination, date });
+      setTrips(data);
+    } catch {
+      toast.error("Không tìm được chuyến, vui lòng thử lại");
+    } finally {
+      setLoadingTrips(false);
+    }
   };
 
   const handleSelectTrip = async (trip: TripSearchResult) => {

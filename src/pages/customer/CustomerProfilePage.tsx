@@ -165,7 +165,7 @@ export default function CustomerProfilePage() {
                     {/* Tuyến đường */}
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-semibold text-pink-900 text-sm">
-                        {ticket.routeName}
+                        {(ticket.origin || ticket.destination) ? `${ticket.origin} → ${ticket.destination}` : 'Chuyến xe'}
                       </span>
                       <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
                         Đã hoàn thành

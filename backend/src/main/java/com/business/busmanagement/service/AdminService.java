@@ -54,7 +54,13 @@ public class AdminService {
 
         LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
         LocalDateTime endOfDay = LocalDate.now().atTime(LocalTime.MAX);
-        long todayTrips = tripRepository.searchTrips(startOfDay, endOfDay, null, null).size();
+        // Dashboard: đếm tất cả trips trong ngày (không filter status)
+        long todayTrips = tripRepository.findAll()
+                .stream()
+                .filter(t -> t.getDepartureTime() != null
+                        && !t.getDepartureTime().isBefore(startOfDay)
+                        && t.getDepartureTime().isBefore(endOfDay))
+                .count();
 
         List<Role> roles = roleRepository.findAll();
         List<AdminDashboardResponse.RoleCount> roleDistribution = roles.stream()

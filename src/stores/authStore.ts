@@ -12,8 +12,7 @@ function normalizeRole(role: string | undefined): User["role"] {
   if (role === "ADMIN" || role === "CUSTOMER") {
     return role as User["role"];
   }
-  localStorage.removeItem("token");
-  localStorage.removeItem("auth-storage");
+  // Unknown role from persisted state: treat as CUSTOMER instead of logging out
   return "CUSTOMER";
 }
 

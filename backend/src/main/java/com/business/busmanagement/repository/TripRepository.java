@@ -14,12 +14,14 @@ import java.util.Optional;
 public interface TripRepository extends JpaRepository<Trip, Long> {
 
     // Lấy tất cả chuyến tương lai - an toàn, không dùng enum parameter
+    // Chỉ lấy SCHEDULED để customer thấy được chuyến admin tạo
     @Query("""
             SELECT DISTINCT t FROM Trip t
             LEFT JOIN FETCH t.route
             LEFT JOIN FETCH t.bus
             WHERE t.departureTime >= :fromDate
                 AND t.departureTime < :toDate
+                AND t.status = 'SCHEDULED'
             ORDER BY t.departureTime ASC
             """)
     List<Trip> findUpcomingTrips(
@@ -28,6 +30,7 @@ public interface TripRepository extends JpaRepository<Trip, Long> {
     );
 
     // Tìm theo origin/destination - an toàn với SCHEDULED string
+    // Thêm null-safe: route phải tồn tại và có origin/destination không null
     @Query("""
             SELECT DISTINCT t FROM Trip t
             LEFT JOIN FETCH t.route r
@@ -35,6 +38,8 @@ public interface TripRepository extends JpaRepository<Trip, Long> {
             WHERE t.departureTime >= :fromDate
                 AND t.departureTime < :toDate
                 AND t.status = 'SCHEDULED'
+                AND r.origin IS NOT NULL
+                AND r.destination IS NOT NULL
                 AND (
                     LOWER(r.origin) = LOWER(:origin)
                         AND LOWER(r.destination) = LOWER(:destination)
@@ -51,14 +56,16 @@ public interface TripRepository extends JpaRepository<Trip, Long> {
             @Param("toDate") LocalDateTime toDate
     );
 
-    // Lấy chuyến theo ngày - an toàn
+    // Lấy chuyến theo ngày - an toàn, null-safe
     @Query("""
             SELECT DISTINCT t FROM Trip t
-            LEFT JOIN FETCH t.route
+            LEFT JOIN FETCH t.route r
             LEFT JOIN FETCH t.bus
             WHERE t.departureTime >= :fromDate
                 AND t.departureTime < :toDate
                 AND t.status = 'SCHEDULED'
+                AND r.origin IS NOT NULL
+                AND r.destination IS NOT NULL
             ORDER BY t.departureTime ASC
             """)
     List<Trip> findScheduledTrips(
@@ -66,14 +73,14 @@ public interface TripRepository extends JpaRepository<Trip, Long> {
             @Param("toDate") LocalDateTime toDate
     );
 
-    // Admin: tìm với nhiều filter - dùng enum parameter
+    // Admin: tìm với nhiều filter - dùng enum parameter, null-safe route
     @Query("""
             SELECT DISTINCT t FROM Trip t
             LEFT JOIN FETCH t.route
             LEFT JOIN FETCH t.bus
             WHERE (:fromDate IS NULL OR t.departureTime >= :fromDate)
                 AND (:toDate IS NULL OR t.departureTime < :toDate)
-                AND (:routeId IS NULL OR t.route.id = :routeId)
+                AND (:routeId IS NULL OR (t.route IS NOT NULL AND t.route.id = :routeId))
                 AND (:status IS NULL OR t.status = :status)
             ORDER BY t.departureTime ASC
             """)

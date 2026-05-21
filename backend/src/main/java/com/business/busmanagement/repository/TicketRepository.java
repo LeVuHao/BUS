@@ -20,6 +20,19 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
 
     boolean existsByTripAndSeat(Trip trip, Seat seat);
 
+    @Query("""
+            SELECT t FROM Ticket t
+            LEFT JOIN FETCH t.trip tr
+            LEFT JOIN FETCH tr.route
+            LEFT JOIN FETCH tr.bus
+            LEFT JOIN FETCH t.seat
+            LEFT JOIN FETCH t.passenger p
+            LEFT JOIN FETCH p.user
+            LEFT JOIN FETCH t.payment
+            WHERE t.id = :id
+            """)
+    Optional<Ticket> findByIdWithDetails(@Param("id") Long id);
+
     @Query("SELECT t FROM Ticket t WHERE t.trip.id = :tripId AND t.seat.id = :seatId")
     Optional<Ticket> findByTripIdAndSeatId(@Param("tripId") Long tripId, @Param("seatId") Long seatId);
 
@@ -29,7 +42,13 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
 
     @Query("""
             SELECT t FROM Ticket t
-            JOIN t.passenger p
+            JOIN FETCH t.passenger p
+            LEFT JOIN FETCH p.user
+            LEFT JOIN FETCH t.trip tr
+            LEFT JOIN FETCH tr.route
+            LEFT JOIN FETCH tr.bus
+            LEFT JOIN FETCH t.seat
+            LEFT JOIN FETCH t.payment
             WHERE p.user.id = :userId
             ORDER BY t.bookedAt DESC
             """)

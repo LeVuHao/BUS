@@ -219,7 +219,7 @@ public class TicketController {
     public ResponseEntity<TicketResponse> cancelTicket(@PathVariable Long id) {
         User currentUser = getCurrentUser();
 
-        Ticket ticket = ticketRepository.findById(id)
+        Ticket ticket = ticketRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket not found"));
 
         // Chỉ cho hủy vé của chính mình
@@ -263,7 +263,7 @@ public class TicketController {
     public ResponseEntity<TicketResponse> payTicket(@PathVariable Long id, @RequestBody PayTicketRequest request) {
         User currentUser = getCurrentUser();
 
-        Ticket ticket = ticketRepository.findById(id)
+        Ticket ticket = ticketRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket not found"));
 
         // Chỉ chủ vé mới được thanh toán
@@ -323,15 +323,12 @@ public class TicketController {
             }
             depTime = trip.getDepartureTime();
             arrTime = trip.getArrivalTime();
+            // Bus đã được eager-load trong findByPassengerUserId, dùng trực tiếp
             if (trip.getBus() != null) {
-                final Long busId = trip.getBus().getId();
-                var busOpt = busRepository.findById(busId);
-                if (busOpt.isPresent()) {
-                    Bus bus = busOpt.get();
-                    licensePlate = bus.getLicensePlate() != null ? bus.getLicensePlate() : "";
-                    busType = bus.getBusType() != null ? bus.getBusType().name() : "";
-                    busLabel = licensePlate + (busType.isEmpty() ? "" : " - " + busType);
-                }
+                Bus bus = trip.getBus();
+                licensePlate = bus.getLicensePlate() != null ? bus.getLicensePlate() : "";
+                busType = bus.getBusType() != null ? bus.getBusType().name() : "";
+                busLabel = licensePlate + (busType.isEmpty() ? "" : " - " + busType);
             }
         }
 

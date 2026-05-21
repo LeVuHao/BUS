@@ -14,7 +14,7 @@ const roleRedirect: Record<UserRole, string> = {
 export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<UserRole>("ADMIN");
+  const [role, setRole] = useState<UserRole>("CUSTOMER");
   const [showPassword, setShowPassword] = useState(false);
   const login = useAuthStore((state) => state.login);
   const isLoading = useAuthStore((state) => state.isLoading);
@@ -90,8 +90,8 @@ export default function LoginPage() {
                     }
                     className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none focus:border-blue-500"
                   >
-                    <option value="ADMIN">ADMIN</option>
                     <option value="CUSTOMER">CUSTOMER</option>
+                    <option value="ADMIN">ADMIN</option>
                   </select>
                 </label>
 
