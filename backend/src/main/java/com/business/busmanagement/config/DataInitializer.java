@@ -146,12 +146,12 @@ public class DataInitializer implements CommandLineRunner {
         if (busRepository.count() == 0) {
             // ============== 20 XE KHÁCH THỰC TẾ ==============
             
-            // === LIMOUSINE (9 chỗ cao cấp) ===
-            Bus limo1 = createBus("29B-111.11", Bus.BusType.LIMOUSINE, 9, Bus.BusStatus.AVAILABLE);
-            Bus limo2 = createBus("30B-222.22", Bus.BusType.LIMOUSINE, 9, Bus.BusStatus.AVAILABLE);
-            Bus limo3 = createBus("51B-333.33", Bus.BusType.LIMOUSINE, 9, Bus.BusStatus.AVAILABLE);
-            Bus limo4 = createBus("43B-444.44", Bus.BusType.LIMOUSINE, 9, Bus.BusStatus.AVAILABLE);
-            Bus limo5 = createBus("88B-555.55", Bus.BusType.LIMOUSINE, 9, Bus.BusStatus.AVAILABLE);
+            // === LIMOUSINE (28 chỗ cao cấp) ===
+            Bus limo1 = createBus("29B-111.11", Bus.BusType.LIMOUSINE, 28, Bus.BusStatus.AVAILABLE);
+            Bus limo2 = createBus("30B-222.22", Bus.BusType.LIMOUSINE, 28, Bus.BusStatus.AVAILABLE);
+            Bus limo3 = createBus("51B-333.33", Bus.BusType.LIMOUSINE, 28, Bus.BusStatus.AVAILABLE);
+            Bus limo4 = createBus("43B-444.44", Bus.BusType.LIMOUSINE, 28, Bus.BusStatus.AVAILABLE);
+            Bus limo5 = createBus("88B-555.55", Bus.BusType.LIMOUSINE, 28, Bus.BusStatus.AVAILABLE);
             
             // === GIƯỜNG NẰM CAO CẤP (34 chỗ) ===
             Bus sleeper1 = createBus("29A-100.01", Bus.BusType.SLEEPER, 34, Bus.BusStatus.AVAILABLE);
