@@ -60,6 +60,14 @@ public class Ticket {
     @JsonIgnore
     private Payment payment;
 
+    // Điểm đón cụ thể (tên + địa chỉ)
+    @Column(name = "pickup_point", length = 500)
+    private String pickupPoint;
+
+    // Điểm trả cụ thể (tên + địa chỉ)
+    @Column(name = "dropoff_point", length = 500)
+    private String dropoffPoint;
+
     public enum TicketStatus {
         BOOKED, HOLD, CONFIRMED, EXPIRED, PAID, CANCELLED, REFUNDED
     }

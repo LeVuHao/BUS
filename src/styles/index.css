@@ -483,22 +483,36 @@ textarea:focus-visible {
     box-shadow: var(--customer-shadow-sm);
   }
 
-  /* Customer inputs */
-  .customer-input,
-  .customer-select {
-    border: 1px solid var(--customer-border);
-    border-radius: var(--customer-radius-md);
-    background: white;
+  .customer-layout input,
+  .customer-layout select,
+  .customer-layout textarea,
+  .theme-customer input,
+  .theme-customer select,
+  .theme-customer textarea {
     color: var(--customer-text);
-    transition: all 0.2s ease;
+    background: rgba(255, 255, 255, 0.98);
+    border: 1px solid var(--customer-border-strong);
   }
 
-  .customer-input:focus,
-  .customer-select:focus {
-    border-color: var(--customer-primary);
-    box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.15);
-    outline: none;
+  .customer-layout input::placeholder,
+  .customer-layout textarea::placeholder,
+  .theme-customer input::placeholder,
+  .theme-customer textarea::placeholder {
+    color: #be185d;
+    opacity: 0.68;
   }
+
+  .customer-layout input:focus,
+  .customer-layout select:focus,
+  .customer-layout textarea:focus,
+  .theme-customer input:focus,
+  .theme-customer select:focus,
+  .theme-customer textarea:focus {
+    border-color: var(--customer-primary) !important;
+    box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.14);
+    background: #ffffff;
+  }
+
 
   /* Customer buttons */
   .customer-btn-primary {

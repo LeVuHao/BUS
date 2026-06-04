@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check, X, ChevronRight, Phone, RefreshCw } from "lucide-react";
+import { Check, X, ChevronRight, ChevronDown, ChevronUp, Phone, MapPin } from "lucide-react";
 import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
 import { useAuthStore } from "../../stores/authStore";
@@ -12,14 +12,21 @@ import {
   SeatStatus,
   TicketRecord,
 } from "../../api/customer";
+import {
+  LOCATION_DATA,
+  LOCATIONS,
+  getCityData,
+  CityData,
+  PickupPoint,
+} from "../../utils/locations";
 
-type Step = "search" | "seats" | "confirm" | "success";
-
-const LOCATIONS = [
-  "Hà Nội", "TP.HCM", "Đà Nẵng", "Cần Thơ", "Huế",
-  "Nha Trang", "Vũng Tàu", "Đà Lạt", "Hải Phòng", "Quảng Ninh",
-  "Bình Dương", "Cà Mau", "An Giang", "Kiên Giang", "Nghệ An"
-];
+type Step =
+  | "search"
+  | "pickup"
+  | "dropoff"
+  | "seats"
+  | "confirm"
+  | "success";
 
 const fmtTime = (dt: string) =>
   new Date(dt).toLocaleTimeString("vi-VN", {
@@ -39,32 +46,261 @@ const fmtPrice = (p: number) =>
 
 const STEP_LABELS: Record<Step, string> = {
   search: "Tìm chuyến",
+  pickup: "Điểm đón",
+  dropoff: "Điểm trả",
   seats: "Chọn ghế",
   confirm: "Xác nhận",
   success: "Hoàn tất",
 };
-const STEPS: Step[] = ["search", "seats", "confirm", "success"];
+const STEPS: Step[] = ["search", "pickup", "dropoff", "seats", "confirm", "success"];
 
+// ----------------------------------------------------------------
+// PickupPointCard — hiển thị 1 điểm đón/trả cụ thể
+// ----------------------------------------------------------------
+interface PointCardProps {
+  point: PickupPoint;
+  selected: boolean;
+  onClick: () => void;
+}
+function PointCard({ point, selected, onClick }: PointCardProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`w-full text-left rounded-xl border p-3 transition-all ${
+        selected
+          ? "border-pink-500 bg-pink-50 shadow-sm ring-2 ring-pink-400"
+          : "border-pink-100 bg-white hover:border-pink-300 hover:bg-pink-50"
+      }`}
+    >
+      <div className="flex items-start gap-2.5">
+        <div
+          className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
+            selected
+              ? "border-pink-500 bg-pink-500"
+              : "border-pink-200 bg-white"
+          }`}
+        >
+          {selected && <Check className="h-3 w-3 text-white" />}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className={`text-sm font-semibold ${selected ? "text-pink-700" : "text-pink-800"}`}>
+            {point.name}
+          </div>
+          <div className="mt-0.5 text-xs text-pink-500">{point.address}</div>
+          {point.description && (
+            <div className="mt-1 text-xs text-pink-400 italic">{point.description}</div>
+          )}
+        </div>
+        {selected && (
+          <span className="shrink-0 rounded-full bg-pink-500 px-2 py-0.5 text-[10px] font-semibold text-white">
+            Đã chọn
+          </span>
+        )}
+      </div>
+    </button>
+  );
+}
+
+// ----------------------------------------------------------------
+// PointSelector — chọn city → hiện các điểm cụ thể
+// ----------------------------------------------------------------
+interface PointSelectorProps {
+  label: string;
+  sublabel: string;
+  icon: "pickup" | "dropoff";
+  selectedCity: string;
+  selectedPoint: PickupPoint | null;
+  availableCities: string[];
+  onCityChange: (city: string) => void;
+  onPointChange: (point: PickupPoint | null) => void;
+}
+function PointSelector({
+  label,
+  sublabel,
+  icon,
+  selectedCity,
+  selectedPoint,
+  availableCities,
+  onCityChange,
+  onPointChange,
+}: PointSelectorProps) {
+  // Bỏ chọn tuyến có sẵn - chỉ cần chọn điểm cụ thể, luôn hiện danh sách điểm để chọn nhanh
+  const [pointsOpen, setPointsOpen] = useState(true);
+  const [showCities, setShowCities] = useState(false);
+
+  const cityData = selectedCity ? getCityData(selectedCity) : undefined;
+  const points = cityData?.pickupPoints ?? [];
+
+  const handleCitySelect = (city: string) => {
+    onCityChange(city);
+    onPointChange(null);
+    setShowCities(false);
+    setPointsOpen(true);
+  };
+
+  const handlePointSelect = (point: PickupPoint) => {
+    onPointChange(point);
+    setPointsOpen(false);
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Header */}
+      <div className="flex items-center gap-2">
+        <div
+          className={`flex h-8 w-8 items-center justify-center rounded-lg ${
+            icon === "pickup" ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-600"
+          }`}
+        >
+          <MapPin className="h-4 w-4" />
+        </div>
+        <div>
+          <div className="text-sm font-semibold text-pink-900">{label}</div>
+          <div className="text-xs text-pink-500">{sublabel}</div>
+        </div>
+      </div>
+
+      {/* City selector — collapsible */}
+      <div>
+        <button
+          type="button"
+          onClick={() => setShowCities((o) => !o)}
+          className="flex w-full items-center justify-between rounded-xl border border-pink-200 bg-white px-4 py-2.5 text-sm transition hover:border-pink-400"
+        >
+          <span className={selectedCity ? "text-pink-800 font-medium" : "text-pink-400"}>
+            {selectedCity
+              ? `${getCityData(selectedCity)?.cityLabel ?? selectedCity}`
+              : "— Chọn thành phố / tỉnh thành —"}
+          </span>
+          {showCities ? (
+            <ChevronUp className="h-4 w-4 text-pink-400" />
+          ) : (
+            <ChevronDown className="h-4 w-4 text-pink-400" />
+          )}
+        </button>
+
+        {showCities && (
+          <div className="mt-1.5 max-h-52 overflow-y-auto rounded-xl border border-pink-200 bg-white shadow-sm">
+            {availableCities.length === 0 ? (
+              <div className="p-3 text-center text-xs text-pink-400">
+                Vui lòng chọn chuyến trước
+              </div>
+            ) : (
+              availableCities.map((city) => {
+                const data = getCityData(city);
+                return (
+                  <button
+                    key={city}
+                    type="button"
+                    onClick={() => handleCitySelect(city)}
+                    className={`flex w-full items-center justify-between px-4 py-2.5 text-sm hover:bg-pink-50 transition ${
+                      selectedCity === city
+                        ? "bg-pink-100 font-semibold text-pink-700"
+                        : "text-pink-700"
+                    }`}
+                  >
+                    <span>{data?.cityLabel ?? city}</span>
+                    <span className="text-xs text-pink-400">
+                      {data?.pickupPoints.length} điểm
+                    </span>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Points list — always visible */}
+      <div>
+        <button
+          type="button"
+          onClick={() => setPointsOpen((o) => !o)}
+          className="flex w-full items-center justify-between rounded-xl border border-pink-200 bg-pink-50 px-4 py-2.5 text-sm transition hover:border-pink-400"
+        >
+          <span className={selectedPoint ? "text-pink-800 font-medium" : "text-pink-400"}>
+            {selectedPoint ? selectedPoint.name : "— Chọn điểm đón cụ thể —"}
+          </span>
+          {pointsOpen ? (
+            <ChevronUp className="h-4 w-4 text-pink-400" />
+          ) : (
+            <ChevronDown className="h-4 w-4 text-pink-400" />
+          )}
+        </button>
+
+        {pointsOpen && (
+          <div className="mt-1.5 max-h-72 overflow-y-auto space-y-2">
+            {points.length === 0 ? (
+              <div className="rounded-xl border border-pink-200 bg-white p-4 text-center">
+                <p className="text-xs text-pink-500">
+                  Không có điểm đón cho thành phố này. Vui lòng chọn thành phố khác.
+                </p>
+              </div>
+            ) : (
+              points.map((point) => (
+                <PointCard
+                  key={point.id}
+                  point={point}
+                  selected={selectedPoint?.id === point.id}
+                  onClick={() => handlePointSelect(point)}
+                />
+              ))
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Selected point summary */}
+      {selectedPoint && (
+        <div className="flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+          <Check className="h-4 w-4 mt-0.5 text-emerald-600 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold text-emerald-700">{selectedPoint.name}</div>
+            <div className="text-xs text-emerald-600">{selectedPoint.address}</div>
+            {selectedPoint.description && (
+              <div className="text-xs text-emerald-500 mt-0.5">{selectedPoint.description}</div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ----------------------------------------------------------------
+// Main component
+// ----------------------------------------------------------------
 export default function CustomerBookingPage() {
   const user = useAuthStore((state) => state.user);
 
+  // Flow steps: search → pickup → dropoff → seats → confirm → success
   const [step, setStep] = useState<Step>("search");
+
+  // Search
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
 
-  const [loadingTrips, setLoadingTrips] = useState(false);
-  const [loadingSeats, setLoadingSeats] = useState(false);
-  const [confirming, setConfirming] = useState(false);
+  // Pickup & Dropoff
+  const [pickupCity, setPickupCity] = useState("");
+  const [pickupPoint, setPickupPoint] = useState<PickupPoint | null>(null);
+  const [dropoffCity, setDropoffCity] = useState("");
+  const [dropoffPoint, setDropoffPoint] = useState<PickupPoint | null>(null);
 
-  const [trips, setTrips] = useState<TripSearchResult[]>([]);
-  const [seats, setSeats] = useState<SeatStatus[]>([]);
+  // Booking
   const [selectedTrip, setSelectedTrip] = useState<TripSearchResult | null>(null);
   const [selectedSeat, setSelectedSeat] = useState<SeatStatus | null>(null);
   const [phone, setPhone] = useState(user?.phone ?? "");
   const [bookedTicket, setBookedTicket] = useState<TicketRecord | null>(null);
 
-  // Load tất cả chuyến tương lai khi vào trang (mặc định)
+  // Loading states
+  const [loadingTrips, setLoadingTrips] = useState(false);
+  const [loadingSeats, setLoadingSeats] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [trips, setTrips] = useState<TripSearchResult[]>([]);
+  const [seats, setSeats] = useState<SeatStatus[]>([]);
+
   const loadTrips = async () => {
     setLoadingTrips(true);
     try {
@@ -81,17 +317,16 @@ export default function CustomerBookingPage() {
     loadTrips();
   }, []);
 
-  const availableSeats = useMemo(
-    () => seats.filter((seat) => !seat.booked).length,
-    [seats],
-  );
-
   const canGoToStep = (target: Step) => {
-    if (target === "search") return true;
-    if (target === "seats") return !!selectedTrip;
-    if (target === "confirm") return !!selectedTrip && !!selectedSeat;
-    if (target === "success") return !!bookedTicket;
-    return false;
+    switch (target) {
+      case "search": return true;
+      case "pickup": return !!selectedTrip;
+      case "dropoff": return !!selectedTrip && !!pickupPoint;
+      case "seats": return !!selectedTrip && !!pickupPoint && !!dropoffPoint;
+      case "confirm": return !!selectedTrip && !!pickupPoint && !!dropoffPoint && !!selectedSeat;
+      case "success": return !!bookedTicket;
+      default: return false;
+    }
   };
 
   const handleReset = () => {
@@ -100,6 +335,10 @@ export default function CustomerBookingPage() {
     setSeats([]);
     setSelectedTrip(null);
     setSelectedSeat(null);
+    setPickupCity("");
+    setPickupPoint(null);
+    setDropoffCity("");
+    setDropoffPoint(null);
     setBookedTicket(null);
     setPhone(user?.phone ?? "");
     loadTrips();
@@ -107,21 +346,17 @@ export default function CustomerBookingPage() {
 
   const handleStepClick = (target: Step) => {
     if (!canGoToStep(target)) {
-      if (target === "seats") {
-        toast("Hãy chọn một chuyến để mở bước này.");
-      }
+      if (target === "pickup") toast("Hãy chọn một chuyến để mở bước này.");
       return;
     }
     setStep(target);
   };
 
-  // Tìm kiếm theo origin/destination/date - gọi API backend
   const handleSearch = async () => {
     if (origin && destination && origin === destination) {
       toast.error("Điểm đi và điểm đến không được trùng nhau");
       return;
     }
-
     setLoadingTrips(true);
     try {
       const data = await searchTrips({ origin, destination, date });
@@ -137,14 +372,32 @@ export default function CustomerBookingPage() {
     setSelectedTrip(trip);
     setSelectedSeat(null);
     setSeats([]);
-    setLoadingSeats(true);
+    setPickupCity("");
+    setPickupPoint(null);
+    setDropoffCity("");
+    setDropoffPoint(null);
+    setStep("pickup");
+  };
 
+  const handleProceedFromPickup = () => {
+    if (!pickupPoint) {
+      toast.error("Vui lòng chọn điểm đón cụ thể");
+      return;
+    }
+    setStep("dropoff");
+  };
+
+  const handleProceedFromDropoff = async () => {
+    if (!dropoffPoint) {
+      toast.error("Vui lòng chọn điểm trả cụ thể");
+      return;
+    }
+    setLoadingSeats(true);
     try {
-      const data = await getTripSeats(trip.id);
+      const data = await getTripSeats(selectedTrip!.id);
       setSeats(data);
       setStep("seats");
     } catch (err: any) {
-      // Nếu backend trả lỗi "chưa gán xe" hoặc "số ghế hợp lệ"
       const msg = err?.response?.data?.message ?? err?.message ?? "";
       if (msg.includes("chưa được gán xe") || msg.includes("không có số ghế")) {
         toast.error(msg);
@@ -166,7 +419,10 @@ export default function CustomerBookingPage() {
       toast.error("Vui lòng chọn chuyến và ghế");
       return;
     }
-
+    if (!pickupPoint || !dropoffPoint) {
+      toast.error("Vui lòng chọn điểm đón và điểm trả");
+      return;
+    }
     if (!phone.trim()) {
       toast.error("Vui lòng nhập số điện thoại");
       return;
@@ -179,6 +435,8 @@ export default function CustomerBookingPage() {
         seatId: selectedSeat.id,
         price: selectedTrip.basePrice,
         passengerPhone: phone.trim(),
+        pickupPoint: pickupPoint.name + " - " + pickupPoint.address,
+        dropoffPoint: dropoffPoint.name + " - " + dropoffPoint.address,
       });
       setBookedTicket(ticket);
       setStep("success");
@@ -190,17 +448,22 @@ export default function CustomerBookingPage() {
     }
   };
 
+  // Get cities for pickup/dropoff. Hiện vẫn cho phép chọn toàn bộ địa điểm,
+  // nhưng không còn nhấn mạnh "khớp tuyến có sẵn" để tránh gây rối UX.
+  const tripAvailableCities = useMemo(() => LOCATIONS, []);
+
+  const stepIndex = STEPS.indexOf(step);
+
   return (
     <div className="space-y-5">
-      {/* Step indicator */}
-      <div className="flex items-center gap-1 text-sm">
+      {/* ── Step indicator ── */}
+      <div className="flex items-center gap-1 text-sm overflow-x-auto pb-1">
         {STEPS.map((s, i) => {
-          const stepIndex = STEPS.indexOf(step);
           const isActive = s === step;
           const isDone = i < stepIndex;
           const isEnabled = canGoToStep(s);
           return (
-            <div key={s} className="flex items-center gap-1">
+            <div key={s} className="flex items-center gap-1 shrink-0">
               <button
                 type="button"
                 onClick={() => handleStepClick(s)}
@@ -219,28 +482,32 @@ export default function CustomerBookingPage() {
                 type="button"
                 onClick={() => handleStepClick(s)}
                 disabled={!isEnabled}
-                className={`text-xs ${isActive ? "font-semibold text-pink-700" : "text-pink-300"} ${isEnabled ? "cursor-pointer" : "cursor-not-allowed"}`}
+                className={`whitespace-nowrap text-xs ${
+                  isActive ? "font-semibold text-pink-700" : "text-pink-300"
+                } ${isEnabled ? "cursor-pointer" : "cursor-not-allowed"}`}
               >
                 {STEP_LABELS[s]}
               </button>
               {i < STEPS.length - 1 && (
-                <ChevronRight className="h-3.5 w-3.5 text-pink-300 mx-1" />
+                <ChevronRight className="h-3.5 w-3.5 text-pink-300 mx-0.5" />
               )}
             </div>
           );
         })}
       </div>
 
-      {step === "search" && (
+      {step !== "success" && step !== "search" && (
         <p className="text-xs text-pink-500">
-          Bước 2 sẽ mở sau khi bạn chọn một chuyến trong danh sách kết quả.
+          {step === "pickup" && "Sau khi chọn điểm đón, bạn sẽ tiếp tục chọn điểm trả."}
+          {step === "dropoff" && "Sau khi chọn điểm trả, hệ thống sẽ tải sơ đồ ghế."}
         </p>
       )}
 
-      {/* ===== BƯỚC 1: DANH SÁCH CHUYẾN ===== */}
+      {/* ══════════════════════════════════════════
+          STEP 1: TÌM CHUYẾN
+      ══════════════════════════════════════════ */}
       {step === "search" && (
         <div className="space-y-4">
-          {/* Form tìm kiếm */}
           <div className="rounded-2xl bg-white p-5 shadow-sm">
             <h2 className="mb-4 text-base font-semibold text-pink-900">
               Tìm chuyến xe
@@ -303,7 +570,7 @@ export default function CustomerBookingPage() {
             </div>
           </div>
 
-          {/* Danh sách chuyến - hiển thị tất cả chuyến admin đã tạo */}
+          {/* Danh sách chuyến */}
           {loadingTrips ? (
             <div className="rounded-2xl bg-white p-12 text-center shadow-sm">
               <div className="animate-spin h-8 w-8 border-2 border-pink-500 border-t-transparent rounded-full mx-auto mb-3" />
@@ -327,7 +594,6 @@ export default function CustomerBookingPage() {
                   onClick={() => handleSelectTrip(trip)}
                 >
                   <div className="space-y-1 flex-1 min-w-0">
-                    {/* Tuyến đường */}
                     <div className="flex items-center gap-2 text-base font-semibold text-pink-900">
                       <span className="bg-pink-100 text-pink-700 px-2 py-0.5 rounded-lg text-sm font-bold">
                         {trip.origin}
@@ -337,7 +603,6 @@ export default function CustomerBookingPage() {
                         {trip.destination}
                       </span>
                     </div>
-                    {/* Thời gian & ngày */}
                     <div className="flex items-center gap-3 text-sm text-pink-500">
                       <span className="flex items-center gap-1">
                         <span className="font-semibold text-pink-700">{fmtTime(trip.departureTime)}</span>
@@ -349,7 +614,6 @@ export default function CustomerBookingPage() {
                       <span className="text-pink-300">·</span>
                       <span>{trip.busLabel}</span>
                     </div>
-                    {/* Ghế - hiển thị chi tiết */}
                     <div className="text-sm">
                       {!trip.busLabel || trip.busLabel === "" ? (
                         <span className="text-amber-600">⚠️ Chưa gán xe cho chuyến</span>
@@ -416,10 +680,145 @@ export default function CustomerBookingPage() {
         </div>
       )}
 
-      {/* ===== BƯỚC 2: CHỌN GHẾ ===== */}
+      {/* ══════════════════════════════════════════
+          STEP 2: CHỌN ĐIỂM ĐÓN
+      ══════════════════════════════════════════ */}
+      {step === "pickup" && selectedTrip && (
+        <div className="space-y-4">
+          {/* Trip summary header */}
+          <div className="rounded-2xl bg-gradient-to-r from-emerald-50 to-white border border-emerald-200 p-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="text-xs text-emerald-600 font-medium mb-1">Chuyến đã chọn</div>
+                <div className="flex items-center gap-2 text-base font-bold text-pink-900">
+                  <span className="bg-pink-100 px-2 py-0.5 rounded-lg text-sm">{selectedTrip.origin}</span>
+                  <span className="text-pink-400">→</span>
+                  <span className="bg-pink-100 px-2 py-0.5 rounded-lg text-sm">{selectedTrip.destination}</span>
+                </div>
+                <div className="mt-1 text-sm text-pink-500">
+                  {fmtDate(selectedTrip.departureTime)} · {fmtTime(selectedTrip.departureTime)} · {selectedTrip.busLabel}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-sm text-pink-500">Giá vé</div>
+                <div className="text-lg font-bold text-pink-600">{fmtPrice(selectedTrip.basePrice)}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Pickup selector */}
+          <div className="rounded-2xl bg-white p-5 shadow-sm">
+            <h2 className="text-base font-semibold text-pink-900 mb-4">
+              Chọn điểm đón khách
+            </h2>
+            <PointSelector
+              label="Điểm đón"
+              sublabel="Chọn thành phố nếu cần, sau đó chọn trực tiếp điểm đón bên dưới"
+              icon="pickup"
+              selectedCity={pickupCity}
+              selectedPoint={pickupPoint}
+              availableCities={tripAvailableCities}
+              onCityChange={setPickupCity}
+              onPointChange={setPickupPoint}
+            />
+          </div>
+
+          {/* Navigation */}
+          <div className="flex justify-between">
+            <button
+              onClick={() => setStep("search")}
+              className="rounded-xl border border-pink-200 px-5 py-2.5 text-sm font-semibold text-pink-600 hover:bg-pink-50"
+            >
+              ← Quay lại
+            </button>
+            <button
+              onClick={handleProceedFromPickup}
+              disabled={!pickupPoint}
+              className="rounded-xl bg-pink-600 px-6 py-2.5 text-sm font-semibold text-white bg-pink-700 disabled:opacity-40 hover:bg-pink-800 transition"
+            >
+              Tiếp tục chọn điểm trả →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════
+          STEP 3: CHỌN ĐIỂM TRẢ
+      ══════════════════════════════════════════ */}
+      {step === "dropoff" && selectedTrip && pickupPoint && (
+        <div className="space-y-4">
+          {/* Trip summary */}
+          <div className="rounded-2xl bg-gradient-to-r from-amber-50 to-white border border-amber-200 p-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="text-xs text-amber-600 font-medium mb-1">Chuyến đã chọn</div>
+                <div className="flex items-center gap-2 text-base font-bold text-pink-900">
+                  <span className="bg-pink-100 px-2 py-0.5 rounded-lg text-sm">{selectedTrip.origin}</span>
+                  <span className="text-pink-400">→</span>
+                  <span className="bg-pink-100 px-2 py-0.5 rounded-lg text-sm">{selectedTrip.destination}</span>
+                </div>
+                <div className="mt-1 text-sm text-pink-500">
+                  {fmtDate(selectedTrip.departureTime)} · {fmtTime(selectedTrip.departureTime)} · {selectedTrip.busLabel}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-sm text-pink-500">Giá vé</div>
+                <div className="text-lg font-bold text-pink-600">{fmtPrice(selectedTrip.basePrice)}</div>
+              </div>
+            </div>
+
+            {/* Pickup confirmation */}
+            <div className="mt-3 flex items-start gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+              <MapPin className="h-4 w-4 mt-0.5 text-emerald-600 shrink-0" />
+              <div>
+                <div className="text-xs text-emerald-600 font-semibold">Điểm đón đã chọn</div>
+                <div className="text-sm font-semibold text-emerald-700">{pickupPoint.name}</div>
+                <div className="text-xs text-emerald-600">{pickupPoint.address}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Dropoff selector */}
+          <div className="rounded-2xl bg-white p-5 shadow-sm">
+            <h2 className="text-base font-semibold text-pink-900 mb-4">
+              Chọn điểm trả khách
+            </h2>
+            <PointSelector
+              label="Điểm trả"
+              sublabel="Chọn thành phố nếu cần, sau đó chọn trực tiếp điểm trả bên dưới"
+              icon="dropoff"
+              selectedCity={dropoffCity}
+              selectedPoint={dropoffPoint}
+              availableCities={tripAvailableCities}
+              onCityChange={setDropoffCity}
+              onPointChange={setDropoffPoint}
+            />
+          </div>
+
+          {/* Navigation */}
+          <div className="flex justify-between">
+            <button
+              onClick={() => setStep("pickup")}
+              className="rounded-xl border border-pink-200 px-5 py-2.5 text-sm font-semibold text-pink-600 hover:bg-pink-50"
+            >
+              ← Quay lại
+            </button>
+            <button
+              onClick={handleProceedFromDropoff}
+              disabled={!dropoffPoint || loadingSeats}
+              className="rounded-xl bg-pink-600 px-6 py-2.5 text-sm font-semibold text-white bg-pink-700 disabled:opacity-40 hover:bg-pink-800 transition"
+            >
+              {loadingSeats ? "Đang tải ghế..." : "Tiếp tục chọn ghế →"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════
+          STEP 4: CHỌN GHẾ
+      ══════════════════════════════════════════ */}
       {step === "seats" && selectedTrip && (
         <div className="rounded-2xl bg-white p-5 shadow-sm">
-          {/* Trip info header */}
           <div className="mb-4 flex items-start justify-between">
             <div>
               <h2 className="text-base font-semibold text-pink-900">
@@ -431,14 +830,29 @@ export default function CustomerBookingPage() {
               </p>
             </div>
             <button
-              onClick={() => setStep("search")}
+              onClick={() => setStep("dropoff")}
               className="text-sm text-pink-400 hover:text-pink-600"
             >
               ← Quay lại
             </button>
           </div>
 
-          {/* Seat stats */}
+          {/* Pickup/dropoff summary bar */}
+          {pickupPoint && dropoffPoint && (
+            <div className="mb-4 flex flex-wrap gap-3">
+              <div className="flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs text-emerald-700">
+                <MapPin className="h-3 w-3" />
+                <span className="font-medium">Đón:</span>
+                <span>{pickupPoint.name}</span>
+              </div>
+              <div className="flex items-center gap-1.5 rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-xs text-amber-700">
+                <MapPin className="h-3 w-3" />
+                <span className="font-medium">Trả:</span>
+                <span>{dropoffPoint.name}</span>
+              </div>
+            </div>
+          )}
+
           <div className="mb-4 flex gap-3 text-sm">
             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-emerald-700 font-medium">
               <Check className="h-3.5 w-3.5" />
@@ -453,7 +867,6 @@ export default function CustomerBookingPage() {
             </span>
           </div>
 
-          {/* Legend */}
           <div className="mb-4 flex gap-5 text-xs text-pink-500">
             <span className="flex items-center gap-1.5">
               <span className="flex h-6 w-6 items-center justify-center rounded border border-emerald-300 bg-emerald-100">
@@ -475,7 +888,6 @@ export default function CustomerBookingPage() {
             </span>
           </div>
 
-          {/* Seat map */}
           {loadingSeats ? (
             <div className="py-12 text-center text-sm text-pink-400">
               Đang tải sơ đồ ghế...
@@ -517,7 +929,6 @@ export default function CustomerBookingPage() {
             </div>
           )}
 
-          {/* Selected seat + action */}
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
             <div className="text-sm text-pink-600">
               {selectedSeat ? (
@@ -542,7 +953,9 @@ export default function CustomerBookingPage() {
         </div>
       )}
 
-      {/* ===== BƯỚC 3: XÁC NHẬN & THANH TOÁN COD ===== */}
+      {/* ══════════════════════════════════════════
+          STEP 5: XÁC NHẬN & THANH TOÁN COD
+      ══════════════════════════════════════════ */}
       {step === "confirm" && selectedTrip && selectedSeat && (
         <div className="rounded-2xl bg-white p-5 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
@@ -557,7 +970,7 @@ export default function CustomerBookingPage() {
             </button>
           </div>
 
-          {/* Tóm tắt thông tin chuyến */}
+          {/* Trip summary */}
           <div className="mb-5 space-y-2 rounded-xl bg-pink-50 p-4 text-sm">
             {[
               ["Tuyến", `${selectedTrip.origin} → ${selectedTrip.destination}`],
@@ -580,7 +993,29 @@ export default function CustomerBookingPage() {
             </div>
           </div>
 
-          {/* Thanh toán COD */}
+          {/* Pickup & Dropoff summary */}
+          {pickupPoint && dropoffPoint && (
+            <div className="mb-4 space-y-2">
+              <div className="flex items-start gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                <MapPin className="h-4 w-4 mt-0.5 text-emerald-600 shrink-0" />
+                <div>
+                  <div className="text-xs font-semibold text-emerald-600">Điểm đón</div>
+                  <div className="text-sm font-semibold text-emerald-700">{pickupPoint.name}</div>
+                  <div className="text-xs text-emerald-600">{pickupPoint.address}</div>
+                </div>
+              </div>
+              <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-3">
+                <MapPin className="h-4 w-4 mt-0.5 text-amber-600 shrink-0" />
+                <div>
+                  <div className="text-xs font-semibold text-amber-600">Điểm trả</div>
+                  <div className="text-sm font-semibold text-amber-700">{dropoffPoint.name}</div>
+                  <div className="text-xs text-amber-600">{dropoffPoint.address}</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* COD payment */}
           <div className="mb-4 rounded-xl border-2 border-emerald-200 bg-emerald-50 p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500 text-white shrink-0">
@@ -597,7 +1032,7 @@ export default function CustomerBookingPage() {
             </div>
           </div>
 
-          {/* Nhập SĐT */}
+          {/* Phone */}
           <div className="mb-5">
             <label className="mb-1 block text-sm font-medium text-pink-700">
               Số điện thoại liên hệ
@@ -627,7 +1062,9 @@ export default function CustomerBookingPage() {
         </div>
       )}
 
-      {/* ===== BƯỚC 4: THÀNH CÔNG ===== */}
+      {/* ══════════════════════════════════════════
+          STEP 6: THÀNH CÔNG
+      ══════════════════════════════════════════ */}
       {step === "success" && bookedTicket && selectedTrip && selectedSeat && (
         <div className="rounded-2xl bg-white p-8 shadow-sm">
           <div className="mb-6 text-center">
@@ -667,7 +1104,26 @@ export default function CustomerBookingPage() {
                 <span className="font-medium text-pink-800">{value}</span>
               </div>
             ))}
-            <div className="flex justify-between border-t border-blue-200 pt-2 mt-2">
+
+            {/* Pickup & Dropoff in ticket */}
+            {pickupPoint && (
+              <div className="flex justify-between border-t border-blue-200 pt-2 mt-1">
+                <span className="text-pink-500">Điểm đón</span>
+                <span className="text-right font-medium text-emerald-700 text-xs">
+                  {pickupPoint.name}<br />{pickupPoint.address}
+                </span>
+              </div>
+            )}
+            {dropoffPoint && (
+              <div className="flex justify-between">
+                <span className="text-pink-500">Điểm trả</span>
+                <span className="text-right font-medium text-amber-700 text-xs">
+                  {dropoffPoint.name}<br />{dropoffPoint.address}
+                </span>
+              </div>
+            )}
+
+            <div className="flex justify-between border-t border-blue-200 pt-2 mt-1">
               <span className="font-semibold text-blue-700">Thanh toán</span>
               <span className="font-bold text-blue-600 text-base">
                 COD - Khi lên xe

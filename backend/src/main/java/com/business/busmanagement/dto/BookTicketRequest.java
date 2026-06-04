@@ -21,4 +21,10 @@ public class BookTicketRequest {
 
     @NotBlank(message = "Số điện thoại không được để trống")
     private String passengerPhone;
+
+    // Điểm đón cụ thể (tên + địa chỉ)
+    private String pickupPoint;
+
+    // Điểm trả cụ thể (tên + địa chỉ)
+    private String dropoffPoint;
 }

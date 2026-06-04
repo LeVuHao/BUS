@@ -50,7 +50,7 @@ const QUICK_NAV_ITEMS: QuickNavItem[] = [
   },
   {
     label: "Quản lý nhân sự",
-    description: "Phân công & lịch trình",
+    description: "Phân công tài xế & phụ xe",
     icon: <UserCog className="w-6 h-6" />,
     to: "/admin/assignments",
     color: "text-purple-400",

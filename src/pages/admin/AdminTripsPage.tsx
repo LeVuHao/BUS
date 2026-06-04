@@ -359,21 +359,20 @@ export default function AdminTripsPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col gap-1">
-                          {trip.assignments?.some((a: any) => a.role === "DRIVER") ? (
+                          {trip.assignments?.some((a: any) => (a.assignmentRole ?? a.role) === "DRIVER") ? (
                             <div className="flex items-center gap-1 text-xs">
                               <span className="w-2 h-2 rounded-full bg-blue-400" />
-                              <span className="text-slate-300">Tài xế: {trip.assignments.find((a: any) => a.role === "DRIVER")?.employeeName}</span>
+                              <span className="text-slate-300">Tài xế: {trip.assignments.find((a: any) => (a.assignmentRole ?? a.role) === "DRIVER")?.employeeName}</span>
                             </div>
-                          ) : (
-                            <div className="text-xs text-slate-500 italic">Chưa có tài xế</div>
-                          )}
-                          {trip.assignments?.some((a: any) => a.role === "ASSISTANT") ? (
+                          ) : null}
+                          {trip.assignments?.some((a: any) => (a.assignmentRole ?? a.role) === "ASSISTANT") ? (
                             <div className="flex items-center gap-1 text-xs">
                               <span className="w-2 h-2 rounded-full bg-purple-400" />
-                              <span className="text-slate-300">Phụ xe: {trip.assignments.find((a: any) => a.role === "ASSISTANT")?.employeeName}</span>
+                              <span className="text-slate-300">Phụ xe: {trip.assignments.find((a: any) => (a.assignmentRole ?? a.role) === "ASSISTANT")?.employeeName}</span>
                             </div>
-                          ) : (
-                            <div className="text-xs text-slate-500 italic">Chưa có phụ xe</div>
+                          ) : null}
+                          {!trip.assignments?.length && (
+                            <div className="text-xs text-slate-500 italic">Chưa phân công nhân sự</div>
                           )}
                         </div>
                       </td>

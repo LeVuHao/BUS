@@ -237,20 +237,20 @@ export default function EmployeeInfoSection() {
   return (
     <section className="mt-8">
       {/* Header */}
-      <div className="mb-6 rounded-2xl bg-gradient-to-r from-rose-500 via-pink-500 to-fuchsia-500 p-6 shadow-xl">
+      <div className="mb-6 rounded-2xl border border-rose-200 bg-gradient-to-r from-white via-rose-50 to-pink-100 p-6 shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="rounded-full bg-white/20 p-3 backdrop-blur-sm">
-              <Users className="h-8 w-8 text-white" />
+            <div className="rounded-full bg-rose-100 p-3 shadow-sm">
+              <Users className="h-8 w-8 text-rose-500" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-white">Thông tin nhân sự</h2>
-              <p className="text-rose-100">Hồ sơ chi tiết tài xế và phụ xe</p>
+              <h2 className="text-2xl font-bold text-rose-700">Thông tin nhân sự</h2>
+              <p className="text-rose-500">Hồ sơ chi tiết tài xế và phụ xe</p>
             </div>
           </div>
           <div className="hidden md:flex items-center gap-3">
-            <div className="rounded-full bg-white/10 px-4 py-2 backdrop-blur-sm">
-              <span className="text-white font-medium">{employees.length} nhân viên</span>
+            <div className="rounded-full border border-rose-200 bg-white px-4 py-2 shadow-sm">
+              <span className="font-medium text-rose-600">{employees.length} nhân viên</span>
             </div>
           </div>
         </div>
@@ -470,7 +470,7 @@ export default function EmployeeInfoSection() {
               })()}
             </div>
           ) : (
-            <div className="sticky top-4 rounded-2xl bg-gradient-to-br from-slate-50 via-pink-50 to-fuchsia-50 p-8 text-center border border-pink-200 shadow-lg">
+            <div className="sticky top-4 rounded-2xl border border-pink-200 bg-gradient-to-br from-white via-rose-50 to-pink-50 p-8 text-center shadow-md">
               <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-pink-100 flex items-center justify-center">
                 <User className="h-8 w-8 text-pink-400" />
               </div>

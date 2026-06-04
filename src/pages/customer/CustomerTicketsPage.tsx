@@ -197,6 +197,31 @@ function InvoiceModal({ ticket, onClose, onCancel, onPay, cancellingId, payingId
             </div>
           </div>
 
+          {/* Pickup & Dropoff */}
+          {(ticket.pickupPoint || ticket.dropoffPoint) && (
+            <div className="bg-emerald-50 rounded-xl p-4 space-y-2 border border-emerald-100">
+              <div className="text-xs text-emerald-600 uppercase tracking-wider mb-2 font-semibold">Điểm đón / Điểm trả</div>
+              {ticket.pickupPoint && (
+                <div className="flex items-start gap-2">
+                  <span className="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-200 text-emerald-700 text-[10px] font-bold mt-0.5">Đ</span>
+                  <div>
+                    <div className="text-xs text-emerald-500 font-medium">Điểm đón</div>
+                    <div className="text-sm text-emerald-700 font-medium">{ticket.pickupPoint}</div>
+                  </div>
+                </div>
+              )}
+              {ticket.dropoffPoint && (
+                <div className="flex items-start gap-2">
+                  <span className="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-200 text-amber-700 text-[10px] font-bold mt-0.5">T</span>
+                  <div>
+                    <div className="text-xs text-amber-500 font-medium">Điểm trả</div>
+                    <div className="text-sm text-amber-700 font-medium">{ticket.dropoffPoint}</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Payment / Invoice */}
           <div className="border-t border-dashed border-slate-200 pt-4">
             <div className="text-xs text-slate-400 uppercase tracking-wider mb-3">Hóa đơn</div>
@@ -335,7 +360,23 @@ function TicketCard({ ticket, onViewDetail }: TicketCardProps) {
 
         {/* Footer */}
         <div className="flex items-center justify-between">
-          <div className="text-xs text-slate-400 truncate mr-2">{ticket.busLabel || ticket.busLicensePlate}</div>
+          <div className="flex-1 min-w-0 mr-2">
+            <div className="text-xs text-slate-400 truncate">{ticket.busLabel || ticket.busLicensePlate}</div>
+            {(ticket.pickupPoint || ticket.dropoffPoint) && (
+              <div className="mt-1 flex gap-1.5 flex-wrap">
+                {ticket.pickupPoint && (
+                  <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 text-[9px] text-emerald-600 font-medium">
+                    📍 {ticket.pickupPoint.split(" - ")[0]}
+                  </span>
+                )}
+                {ticket.dropoffPoint && (
+                  <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-[9px] text-amber-600 font-medium">
+                    📍 {ticket.dropoffPoint.split(" - ")[0]}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
           <div className="text-right shrink-0">
             <div className="font-bold text-pink-600">{fmtPrice(ticket.price)}</div>
             {isPaid && ticket.transactionCode && (

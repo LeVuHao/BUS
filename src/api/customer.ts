@@ -26,6 +26,8 @@ export interface BookTicketPayload {
   seatId: number;
   price: number;
   passengerPhone: string;
+  pickupPoint?: string;
+  dropoffPoint?: string;
 }
 
 export interface TicketRecord {
@@ -60,6 +62,9 @@ export interface TicketRecord {
   transactionTime: string | null;
   // Mã vé
   ticketCode: string;
+  // Điểm đón / điểm trả
+  pickupPoint?: string;
+  dropoffPoint?: string;
 }
 
 export interface UpdateProfilePayload {

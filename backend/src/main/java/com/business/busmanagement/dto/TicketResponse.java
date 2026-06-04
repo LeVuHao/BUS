@@ -49,4 +49,8 @@ public class TicketResponse {
 
     // ── Mã vé (QR) ──────────────────────────────────────────────────
     private String ticketCode;        // Mã vé hiển thị: BUS-20260520-00001
+
+    // ── Điểm đón / điểm trả ────────────────────────────────────────
+    private String pickupPoint;       // Tên + địa chỉ điểm đón
+    private String dropoffPoint;      // Tên + địa chỉ điểm trả
 }

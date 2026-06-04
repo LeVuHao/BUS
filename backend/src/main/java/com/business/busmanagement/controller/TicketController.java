@@ -190,6 +190,11 @@ public class TicketController {
                 request.getPrice()
         );
 
+        // Lưu điểm đón / điểm trả cụ thể
+        ticket.setPickupPoint(request.getPickupPoint());
+        ticket.setDropoffPoint(request.getDropoffPoint());
+        ticketRepository.save(ticket);
+
         return ResponseEntity.ok(toTicketResponse(ticket));
     }
 
@@ -371,7 +376,9 @@ public class TicketController {
                 pStatus,
                 txCode,
                 txTime,
-                ticketCode
+                ticketCode,
+                ticket.getPickupPoint(),
+                ticket.getDropoffPoint()
         );
     }
 
@@ -392,7 +399,9 @@ public class TicketController {
                 ticket.getBookedAt(),
                 ticket.getPaidAt(),
                 null, null, null, null, null,
-                generateTicketCode(ticket)
+                generateTicketCode(ticket),
+                ticket.getPickupPoint(),
+                ticket.getDropoffPoint()
         );
     }
 
