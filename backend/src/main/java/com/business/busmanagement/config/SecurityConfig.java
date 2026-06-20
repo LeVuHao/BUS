@@ -38,6 +38,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/public/auth/register", "/api/public/auth/login", "/api/health",
                                 "/api/debug/**")
                         .permitAll()
+                        // VNPay IPN + Return URL — server-to-server / user redirect, không cần auth
+                        .requestMatchers("/api/public/payment/vnpay/**").permitAll()
                         .requestMatchers("/api/auth/profile").authenticated()
                         // PUBLIC — tìm chuyến không cần đăng nhập
                         .requestMatchers(HttpMethod.GET, "/api/public/trips/search").permitAll()
@@ -48,6 +50,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/private/tickets/my").hasRole("CUSTOMER")
                         .requestMatchers(HttpMethod.PUT, "/api/private/tickets/*/cancel").hasRole("CUSTOMER")
                         .requestMatchers(HttpMethod.PUT, "/api/private/tickets/*/pay").hasRole("CUSTOMER")
+                        // PRIVATE — VNPay tạo URL thanh toán (cần đăng nhập CUSTOMER)
+                        .requestMatchers(HttpMethod.POST, "/api/private/payment/vnpay/create").hasRole("CUSTOMER")
                         // PRIVATE — profile (mọi role đã đăng nhập)
                         .requestMatchers(HttpMethod.PUT, "/api/auth/profile").authenticated()
                         // ADMIN — quản lý hệ thống

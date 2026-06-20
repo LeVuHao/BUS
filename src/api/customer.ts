@@ -72,6 +72,25 @@ export interface UpdateProfilePayload {
   phone: string;
 }
 
+// ─── VNPay ────────────────────────────────────────────────────────────
+export interface VnpayPaymentResponse {
+  paymentUrl: string;
+  txnRef: string;
+  expireAt: string;
+}
+
+export interface VnpayReturnInfo {
+  txnRef: string;
+  responseCode: string;
+  transactionNo: string;
+  amount: number;
+  bankCode: string;
+  cardType: string;
+  payDate: string;
+  orderInfo: string;
+  success: boolean;
+}
+
 export const searchTrips = (params: {
   origin: string;
   destination: string;
@@ -116,5 +135,19 @@ export const getProfile = (): Promise<{
 export const updateProfile = (payload: UpdateProfilePayload): Promise<void> =>
   apiClient.put("/auth/profile", payload).then((r) => r.data);
 
+/** Mock payment nhanh (chỉ dùng cho test COD/BANK qua mock endpoint cũ) */
 export const mockPayment = async (data: { ticketId: number; paymentMethod: string }): Promise<TicketRecord> =>
   apiClient.put<TicketRecord>(`/private/tickets/${data.ticketId}/pay`, { paymentMethod: data.paymentMethod }).then((r) => r.data);
+
+// ─── VNPay API ────────────────────────────────────────────────────────
+/** Tạo URL thanh toán VNPay (sandbox/production). Redirect user tới paymentUrl. */
+export const createVnpayPayment = async (ticketId: number): Promise<VnpayPaymentResponse> =>
+  apiClient
+    .post<VnpayPaymentResponse>("/private/payment/vnpay/create", { ticketId })
+    .then((r) => r.data);
+
+/** Lấy thông tin kết quả từ Return URL (frontend query VNPay gọi về). */
+export const getVnpayReturnInfo = async (queryString: string): Promise<VnpayReturnInfo> =>
+  apiClient
+    .get<VnpayReturnInfo>(`/public/payment/vnpay/return${queryString}`)
+    .then((r) => r.data);

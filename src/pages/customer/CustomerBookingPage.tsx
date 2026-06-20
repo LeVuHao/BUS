@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check, X, ChevronRight, ChevronDown, ChevronUp, Phone, MapPin } from "lucide-react";
+import { Check, X, ChevronRight, ChevronDown, ChevronUp, Phone, MapPin, CreditCard, Smartphone } from "lucide-react";
 import toast from "react-hot-toast";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../stores/authStore";
 import {
   searchTrips,
   getAllUpcomingTrips,
   getTripSeats,
   bookTicket,
+  createVnpayPayment,
   TripSearchResult,
   SeatStatus,
   TicketRecord,
@@ -27,6 +28,8 @@ type Step =
   | "seats"
   | "confirm"
   | "success";
+
+type PaymentMethod = "COD" | "VNPAY";
 
 const fmtTime = (dt: string) =>
   new Date(dt).toLocaleTimeString("vi-VN", {
@@ -53,6 +56,71 @@ const STEP_LABELS: Record<Step, string> = {
   success: "Hoàn tất",
 };
 const STEPS: Step[] = ["search", "pickup", "dropoff", "seats", "confirm", "success"];
+
+// ----------------------------------------------------------------
+// PaymentMethodCard — lựa chọn phương thức thanh toán
+// ----------------------------------------------------------------
+interface PaymentMethodCardProps {
+  value: "COD" | "VNPAY";
+  selected: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  title: string;
+  desc: string;
+  badge?: string;
+  badgeColor?: string;
+}
+function PaymentMethodCard({
+  selected,
+  onClick,
+  icon,
+  title,
+  desc,
+  badge,
+  badgeColor,
+}: PaymentMethodCardProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`relative w-full rounded-xl border-2 p-3.5 text-left transition-all ${
+        selected
+          ? "border-pink-500 bg-pink-50 shadow-sm"
+          : "border-pink-100 bg-white hover:border-pink-300 hover:bg-pink-50/50"
+      }`}
+    >
+      <div className="flex items-start gap-2.5">
+        <div
+          className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+            selected ? "bg-pink-500 text-white" : "bg-pink-100 text-pink-500"
+          }`}
+        >
+          {icon}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <div className={`text-sm font-semibold ${selected ? "text-pink-900" : "text-pink-700"}`}>
+              {title}
+            </div>
+            {badge && (
+              <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${badgeColor ?? "bg-pink-100 text-pink-700"}`}>
+                {badge}
+              </span>
+            )}
+          </div>
+          <div className="mt-0.5 text-xs text-pink-500">{desc}</div>
+        </div>
+        <div
+          className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
+            selected ? "border-pink-500 bg-pink-500" : "border-pink-200 bg-white"
+          }`}
+        >
+          {selected && <Check className="h-3 w-3 text-white" />}
+        </div>
+      </div>
+    </button>
+  );
+}
 
 // ----------------------------------------------------------------
 // PickupPointCard — hiển thị 1 điểm đón/trả cụ thể
@@ -273,6 +341,7 @@ function PointSelector({
 // ----------------------------------------------------------------
 export default function CustomerBookingPage() {
   const user = useAuthStore((state) => state.user);
+  const navigate = useNavigate();
 
   // Flow steps: search → pickup → dropoff → seats → confirm → success
   const [step, setStep] = useState<Step>("search");
@@ -292,6 +361,7 @@ export default function CustomerBookingPage() {
   const [selectedTrip, setSelectedTrip] = useState<TripSearchResult | null>(null);
   const [selectedSeat, setSelectedSeat] = useState<SeatStatus | null>(null);
   const [phone, setPhone] = useState(user?.phone ?? "");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("VNPAY");
   const [bookedTicket, setBookedTicket] = useState<TicketRecord | null>(null);
 
   // Loading states
@@ -439,10 +509,30 @@ export default function CustomerBookingPage() {
         dropoffPoint: dropoffPoint.name + " - " + dropoffPoint.address,
       });
       setBookedTicket(ticket);
+
+      if (paymentMethod === "VNPAY") {
+        // Thanh toán online qua VNPay: gọi backend tạo URL rồi redirect
+        try {
+          const vnpayRes = await createVnpayPayment(ticket.id);
+          // Lưu ticketId vào sessionStorage để trang return có thể tham chiếu nếu cần
+          sessionStorage.setItem("pendingVnpayTicketId", String(ticket.id));
+          window.location.href = vnpayRes.paymentUrl;
+          return; // sẽ redirect, không chuyển sang success step
+        } catch (err: any) {
+          const msg = err?.response?.data?.message ?? err?.message ?? "";
+          toast.error(`Đặt vé thành công nhưng tạo URL thanh toán thất bại: ${msg}`);
+          // Vẫn chuyển sang success để user biết vé đã được tạo (status HOLD)
+          setStep("success");
+          return;
+        }
+      }
+
+      // COD: chỉ đặt vé, nhân viên gọi xác nhận và thu tiền sau
       setStep("success");
       toast.success("Đặt vé thành công! Nhân viên sẽ gọi xác nhận trước khi khởi hành.");
-    } catch {
-      toast.error("Đặt vé thất bại, vui lòng thử lại");
+    } catch (err: any) {
+      const msg = err?.response?.data?.message ?? err?.message ?? "Đặt vé thất bại, vui lòng thử lại";
+      toast.error(msg);
     } finally {
       setConfirming(false);
     }
@@ -1015,21 +1105,42 @@ export default function CustomerBookingPage() {
             </div>
           )}
 
-          {/* COD payment */}
-          <div className="mb-4 rounded-xl border-2 border-emerald-200 bg-emerald-50 p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500 text-white shrink-0">
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-              </div>
-              <div>
-                <div className="font-semibold text-pink-900">Thanh toán khi lên xe (COD)</div>
-                <div className="text-xs text-pink-500">
-                  Bạn sẽ thanh toán trực tiếp cho nhân viên khi lên xe
+          {/* Phương thức thanh toán */}
+          <div className="mb-5">
+            <h3 className="mb-2.5 text-sm font-semibold text-pink-900">
+              Phương thức thanh toán
+            </h3>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <PaymentMethodCard
+                value="VNPAY"
+                selected={paymentMethod === "VNPAY"}
+                onClick={() => setPaymentMethod("VNPAY")}
+                icon={<CreditCard className="h-5 w-5" />}
+                title="Thanh toán online (VNPay)"
+                desc="Thẻ ATM nội địa, Visa/Master, QR ngân hàng"
+                badge="Khuyên dùng"
+                badgeColor="bg-pink-100 text-pink-700"
+              />
+              <PaymentMethodCard
+                value="COD"
+                selected={paymentMethod === "COD"}
+                onClick={() => setPaymentMethod("COD")}
+                icon={<Smartphone className="h-5 w-5" />}
+                title="Thanh toán khi lên xe"
+                desc="Tiền mặt cho nhân viên khi lên xe"
+              />
+            </div>
+
+            {paymentMethod === "VNPAY" && (
+              <div className="mt-3 flex items-start gap-2 rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs text-blue-700">
+                <CreditCard className="h-4 w-4 mt-0.5 shrink-0" />
+                <div>
+                  Sau khi xác nhận, bạn sẽ được chuyển sang cổng thanh toán VNPay
+                  để hoàn tất thanh toán. Vé chỉ được giữ chỗ trong{" "}
+                  <strong>15 phút</strong>.
                 </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Phone */}
@@ -1048,7 +1159,9 @@ export default function CustomerBookingPage() {
               />
             </div>
             <p className="mt-1 text-xs text-pink-400">
-              Nhân viên sẽ gọi xác nhận chỗ ngồi và hướng dẫn thanh toán khi bạn lên xe.
+              {paymentMethod === "COD"
+                ? "Nhân viên sẽ gọi xác nhận chỗ ngồi và hướng dẫn thanh toán khi bạn lên xe."
+                : "Nhân viên sẽ liên hệ xác nhận sau khi bạn thanh toán thành công."}
             </p>
           </div>
 
@@ -1057,7 +1170,11 @@ export default function CustomerBookingPage() {
             disabled={confirming}
             className="w-full rounded-xl bg-pink-600 py-3 text-sm font-semibold text-white bg-pink-700 disabled:opacity-60"
           >
-            {confirming ? "Đang xử lý..." : "Xác nhận đặt vé (COD)"}
+            {confirming
+              ? "Đang xử lý..."
+              : paymentMethod === "VNPAY"
+                ? "Tiến hành thanh toán qua VNPay →"
+                : "Xác nhận đặt vé (COD)"}
           </button>
         </div>
       )}
