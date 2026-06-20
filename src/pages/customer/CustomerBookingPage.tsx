@@ -180,6 +180,8 @@ interface PointSelectorProps {
   selectedCity: string;
   selectedPoint: PickupPoint | null;
   availableCities: string[];
+  /** Khi true, khóa city theo tuyến (ẩn dropdown chọn city, chỉ hiển thị city cố định). */
+  lockedCity?: boolean;
   onCityChange: (city: string) => void;
   onPointChange: (point: PickupPoint | null) => void;
 }
@@ -190,6 +192,7 @@ function PointSelector({
   selectedCity,
   selectedPoint,
   availableCities,
+  lockedCity = false,
   onCityChange,
   onPointChange,
 }: PointSelectorProps) {
@@ -229,56 +232,70 @@ function PointSelector({
         </div>
       </div>
 
-      {/* City selector — collapsible */}
-      <div>
-        <button
-          type="button"
-          onClick={() => setShowCities((o) => !o)}
-          className="flex w-full items-center justify-between rounded-xl border border-pink-200 bg-white px-4 py-2.5 text-sm transition hover:border-pink-400"
-        >
-          <span className={selectedCity ? "text-pink-800 font-medium" : "text-pink-400"}>
+      {/* City selector — ẩn khi lockedCity (city đã bị khóa theo tuyến) */}
+      {lockedCity ? (
+        <div className="flex items-center gap-2 rounded-xl border border-pink-200 bg-pink-50/60 px-4 py-2.5 text-sm">
+          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-pink-500 text-white text-[10px] font-bold">
+            🔒
+          </span>
+          <span className="text-pink-500">Thành phố cố định theo tuyến:</span>
+          <span className="font-semibold text-pink-800">
             {selectedCity
               ? `${getCityData(selectedCity)?.cityLabel ?? selectedCity}`
-              : "— Chọn thành phố / tỉnh thành —"}
+              : "—"}
           </span>
-          {showCities ? (
-            <ChevronUp className="h-4 w-4 text-pink-400" />
-          ) : (
-            <ChevronDown className="h-4 w-4 text-pink-400" />
-          )}
-        </button>
-
-        {showCities && (
-          <div className="mt-1.5 max-h-52 overflow-y-auto rounded-xl border border-pink-200 bg-white shadow-sm">
-            {availableCities.length === 0 ? (
-              <div className="p-3 text-center text-xs text-pink-400">
-                Vui lòng chọn chuyến trước
-              </div>
+        </div>
+      ) : (
+        <div>
+          <button
+            type="button"
+            onClick={() => setShowCities((o) => !o)}
+            className="flex w-full items-center justify-between rounded-xl border border-pink-200 bg-white px-4 py-2.5 text-sm transition hover:border-pink-400"
+          >
+            <span className={selectedCity ? "text-pink-800 font-medium" : "text-pink-400"}>
+              {selectedCity
+                ? `${getCityData(selectedCity)?.cityLabel ?? selectedCity}`
+                : "— Chọn thành phố / tỉnh thành —"}
+            </span>
+            {showCities ? (
+              <ChevronUp className="h-4 w-4 text-pink-400" />
             ) : (
-              availableCities.map((city) => {
-                const data = getCityData(city);
-                return (
-                  <button
-                    key={city}
-                    type="button"
-                    onClick={() => handleCitySelect(city)}
-                    className={`flex w-full items-center justify-between px-4 py-2.5 text-sm hover:bg-pink-50 transition ${
-                      selectedCity === city
-                        ? "bg-pink-100 font-semibold text-pink-700"
-                        : "text-pink-700"
-                    }`}
-                  >
-                    <span>{data?.cityLabel ?? city}</span>
-                    <span className="text-xs text-pink-400">
-                      {data?.pickupPoints.length} điểm
-                    </span>
-                  </button>
-                );
-              })
+              <ChevronDown className="h-4 w-4 text-pink-400" />
             )}
-          </div>
-        )}
-      </div>
+          </button>
+
+          {showCities && (
+            <div className="mt-1.5 max-h-52 overflow-y-auto rounded-xl border border-pink-200 bg-white shadow-sm">
+              {availableCities.length === 0 ? (
+                <div className="p-3 text-center text-xs text-pink-400">
+                  Vui lòng chọn chuyến trước
+                </div>
+              ) : (
+                availableCities.map((city) => {
+                  const data = getCityData(city);
+                  return (
+                    <button
+                      key={city}
+                      type="button"
+                      onClick={() => handleCitySelect(city)}
+                      className={`flex w-full items-center justify-between px-4 py-2.5 text-sm hover:bg-pink-50 transition ${
+                        selectedCity === city
+                          ? "bg-pink-100 font-semibold text-pink-700"
+                          : "text-pink-700"
+                      }`}
+                    >
+                      <span>{data?.cityLabel ?? city}</span>
+                      <span className="text-xs text-pink-400">
+                        {data?.pickupPoints.length} điểm
+                      </span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Points list — always visible */}
       <div>
@@ -299,10 +316,16 @@ function PointSelector({
 
         {pointsOpen && (
           <div className="mt-1.5 max-h-72 overflow-y-auto space-y-2">
-            {points.length === 0 ? (
+            {!selectedCity ? (
+              <div className="rounded-xl border border-dashed border-pink-200 bg-pink-50/40 p-4 text-center">
+                <p className="text-xs text-pink-500">
+                  Vui lòng chọn thành phố ở mục phía trên để xem các điểm đón cụ thể.
+                </p>
+              </div>
+            ) : points.length === 0 ? (
               <div className="rounded-xl border border-pink-200 bg-white p-4 text-center">
                 <p className="text-xs text-pink-500">
-                  Không có điểm đón cho thành phố này. Vui lòng chọn thành phố khác.
+                  Chưa có điểm đón nào được cấu hình cho {getCityData(selectedCity)?.cityLabel ?? selectedCity}. Vui lòng liên hệ nhân viên.
                 </p>
               </div>
             ) : (
@@ -442,9 +465,10 @@ export default function CustomerBookingPage() {
     setSelectedTrip(trip);
     setSelectedSeat(null);
     setSeats([]);
-    setPickupCity("");
+    // Khóa city theo tuyến: pickupCity = origin, dropoffCity = destination
+    setPickupCity(trip.origin);
     setPickupPoint(null);
-    setDropoffCity("");
+    setDropoffCity(trip.destination);
     setDropoffPoint(null);
     setStep("pickup");
   };
@@ -538,9 +562,15 @@ export default function CustomerBookingPage() {
     }
   };
 
-  // Get cities for pickup/dropoff. Hiện vẫn cho phép chọn toàn bộ địa điểm,
-  // nhưng không còn nhấn mạnh "khớp tuyến có sẵn" để tránh gây rối UX.
-  const tripAvailableCities = useMemo(() => LOCATIONS, []);
+  // Ràng buộc theo tuyến: pickup chỉ được chọn city = trip.origin,
+  // dropoff chỉ được chọn city = trip.destination. Việc này đảm bảo
+  // điểm đón/trả khớp với đầu/cuối tuyến mà admin đã thiết lập.
+  const tripAvailableCities = useMemo(() => {
+    if (!selectedTrip) return LOCATIONS;
+    return LOCATIONS.filter(
+      (l) => l === selectedTrip.origin || l === selectedTrip.destination
+    );
+  }, [selectedTrip]);
 
   const stepIndex = STEPS.indexOf(step);
 
@@ -803,11 +833,12 @@ export default function CustomerBookingPage() {
             </h2>
             <PointSelector
               label="Điểm đón"
-              sublabel="Chọn thành phố nếu cần, sau đó chọn trực tiếp điểm đón bên dưới"
+              sublabel="Chọn điểm đón cụ thể ở thành phố xuất phát của tuyến"
               icon="pickup"
               selectedCity={pickupCity}
               selectedPoint={pickupPoint}
               availableCities={tripAvailableCities}
+              lockedCity={!!selectedTrip}
               onCityChange={setPickupCity}
               onPointChange={setPickupPoint}
             />
@@ -875,11 +906,12 @@ export default function CustomerBookingPage() {
             </h2>
             <PointSelector
               label="Điểm trả"
-              sublabel="Chọn thành phố nếu cần, sau đó chọn trực tiếp điểm trả bên dưới"
+              sublabel="Chọn điểm trả cụ thể ở thành phố đến của tuyến"
               icon="dropoff"
               selectedCity={dropoffCity}
               selectedPoint={dropoffPoint}
               availableCities={tripAvailableCities}
+              lockedCity={!!selectedTrip}
               onCityChange={setDropoffCity}
               onPointChange={setDropoffPoint}
             />
