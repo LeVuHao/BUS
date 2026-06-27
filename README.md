@@ -79,13 +79,14 @@
 | 🎫 **Mã vé tự động** | Format `BUS-YYYYMMDD-XXXXX` — dễ tra cứu, dễ in. |
 | 🚫 **Hủy vé thông minh** | Cho phép hủy trước giờ khởi hành; chặn hủy nếu chuyến đã chạy/hoàn thành. |
 | 👤 **Quản lý hồ sơ** | Cập nhật họ tên, SĐT; hệ thống tự lưu vào bảng `passengers`. |
+| 💬 **Gửi Feedback** | Modal phản hồi nhanh: chọn danh mục (Khiếu nại / Góp ý / Khen / Hỏi / Khác), chủ đề, nội dung, đánh giá 1–5 sao, liên kết chuyến cụ thể. Theo dõi trạng thái xử lý ngay trong hồ sơ. |
 
 ### 🎛️ Phía Quản trị viên
 
 | Tính năng | Mô tả chi tiết |
 |---|---|
 | 📊 **Dashboard tổng quan** | 4 stat cards: Users / Buses / Routes / Trips hôm nay + 2 biểu đồ phân bổ + bảng cảnh báo bảo hiểm. |
-| 🔔 **SSE Real-time Notification** | Toast popup khi có vé mới (COD) hoặc VNPay thành công. Click → mở modal chi tiết. |
+| 🔔 **SSE Real-time Notification** | Toast popup khi có vé mới (COD), VNPay thành công hoặc feedback mới. Click → mở modal chi tiết. |
 | 🚌 **Quản lý đội xe** | CRUD 20+ xe với 3 loại: **LIMOUSINE / SLEEPER / SEAT**, theo dõi bảo hiểm & bảo trì. |
 | ⚠️ **Cảnh báo bảo hiểm** | Tự động detect xe **hết hạn** hoặc **sắp hết hạn** (trong 30 ngày). |
 | 🗺️ **Quản lý tuyến & chuyến** | Tạo tuyến mới inline khi tạo chuyến; kiểm tra **trùng lịch xe** (overlap detection). |
@@ -93,6 +94,8 @@
 | 🎫 **Quản lý vé** | Bảng lọc theo trạng thái (HOLD/CONFIRMED/PAID/CANCELLED), xác nhận/hủy inline. |
 | 💺 **Sơ đồ ghế admin** | Modal hiển thị chi tiết từng ghế: ai đặt, SĐT, điểm đón/trả, phương thức thanh toán. |
 | 💰 **Quản lý doanh thu** | Tính `estimatedRevenue` (giá × số ghế đặt) và `actualRevenue` (chỉ vé PAID). |
+| 📈 **Trang doanh thu chuyên sâu** | Biểu đồ đường theo ngày/tuần/tháng + bar chart theo tuyến, summary cards (tổng / confirmed / pending / cancelled). |
+| 📬 **Hộp thư Feedback** | Modal inbox: lọc theo trạng thái / danh mục / ưu tiên, tìm kiếm full-text, reply nội tuyến, đổi status/priority. |
 | 🔒 **Quản lý tài khoản** | CRUD users, khóa/mở khóa, reset password, soft-delete (không xóa vĩnh viễn). |
 | 🛡️ **Phân quyền chặt** | Endpoint `/api/admin/**` yêu cầu `ROLE_ADMIN`; `/api/private/**` yêu cầu `ROLE_CUSTOMER`. |
 
@@ -198,6 +201,17 @@
 | Toast | react-hot-toast 2.5 |
 | Date | date-fns 4.1 |
 | Realtime | EventSource (native browser API) |
+
+### 🎨 Hệ thống Theme (2 giao diện)
+
+Hệ thống dùng **2 theme song song** — chuyển đổi tự động theo role:
+
+| Theme | Audience | Màu chủ đạo | Class tiện ích |
+|---|---|---|---|
+| **Admin (Dark)** | Admin / Dispatcher | Tím đậm + xanh dương + amber | `.admin-card`, `.admin-input`, `.admin-button-primary`, `.admin-table` |
+| **Customer (Pink)** | Khách đặt vé | Hồng pastel + coral | `.customer-card`, `.customer-input`, `.customer-btn-primary`, `.customer-layout` |
+
+CSS variables (`--admin-*`, `--customer-*`) được khai báo trong `src/styles/index.css` và override theo selector `.theme-customer` / `.customer-layout`. Form inputs của khách dùng class `.customer-input` (đã được style riêng, không phụ thuộc vào `.customer-layout` cha).
 
 ---
 
@@ -375,26 +389,32 @@ BUS/
 │   │   ├── auth.ts                           # 🔐 Login/Register
 │   │   ├── customer.ts                       # 🛒 Booking, my tickets, VNPay
 │   │   ├── admin.ts                          # 👨‍💼 Admin CRUD + SSE connector
-│   │   └── dispatcher.ts
+│   │   ├── dispatcher.ts
+│   │   └── feedback.ts                       # 📬 Feedback (customer + admin)
 │   ├── 📁 components/
 │   │   ├── 📁 layout/                        # MainLayout, ProtectedRoute
-│   │   ├── 📁 ui/                            # Badge, Snowfall, StatusBadge
-│   │   └── 📁 admin/                         # EmployeeInfoSection
+│   │   ├── 📁 ui/                            # StatusBadge, Snowfall
+│   │   ├── 📁 admin/                         # EmployeeInfoSection, FeedbackInboxModal
+│   │   ├── 📁 customer/                      # BookingHero
+│   │   └── 📁 feedback/                      # FeedbackModal (customer submit)
 │   ├── 📁 pages/
 │   │   ├── 📁 auth/                          # LoginPage, RegisterPage
 │   │   ├── 📁 customer/                      # CustomerBookingPage (1300+ dòng!)
 │   │   │   ├── CustomerBookingPage.tsx       # 🎯 6-step booking flow
 │   │   │   ├── CustomerTicketsPage.tsx
 │   │   │   └── CustomerProfilePage.tsx
-│   │   ├── 📁 admin/                         # Admin pages (7 pages)
+│   │   ├── 📁 admin/                         # Admin pages
 │   │   │   ├── AdminDashboardPage.tsx        # 📊 Realtime dashboard
 │   │   │   ├── AdminUsersPage.tsx
 │   │   │   ├── AdminBusesPage.tsx
 │   │   │   ├── AdminTripsPage.tsx
 │   │   │   ├── AdminTicketsPage.tsx
 │   │   │   ├── AdminAssignmentsPage.tsx
+│   │   │   ├── AdminRevenuePage.tsx          # 💰 Doanh thu chuyên sâu
+│   │   │   ├── AdminRevenueStats.tsx         # 📈 Reusable revenue charts
 │   │   │   └── TripSeatsModal.tsx            # 💺 Modal sơ đồ ghế admin
 │   │   ├── 📁 dispatcher/
+│   │   │   └── DispatcherDashboardPage.tsx   # 🚚 Điều phối chuyến
 │   │   └── 📁 payment/
 │   │       └── PaymentReturnPage.tsx         # 💳 VNPay return handler
 │   ├── 📁 stores/                            # Zustand state
@@ -709,6 +729,19 @@ String secureHash = HmacSHA512(VNPAY_HASH_SECRET, hashData);
 }
 ```
 
+#### `feedback.created`
+```typescript
+{
+  feedbackId: number;
+  username: string;
+  userFullName: string;
+  category: string;   // COMPLAINT / SUGGESTION / PRAISE / QUESTION / OTHER
+  subject: string;
+  priority: string;   // LOW / MEDIUM / HIGH
+  createdAt: string;  // ISO 8601
+}
+```
+
 ---
 
 ## 📡 API Endpoints
@@ -739,6 +772,11 @@ Tổng cộng **40+ endpoints** chia theo 3 nhóm quyền.
 | `POST` | `/api/private/payment/vnpay/create` | Tạo URL thanh toán VNPay |
 | `GET` | `/api/auth/profile` | Lấy hồ sơ |
 | `PUT` | `/api/auth/profile` | Cập nhật hồ sơ |
+| `POST` | `/api/private/feedbacks` | Gửi feedback mới |
+| `GET` | `/api/private/feedbacks/me` | Lịch sử feedback của tôi |
+| `GET` | `/api/private/feedbacks/{id}` | Chi tiết feedback |
+| `POST` | `/api/private/feedbacks/{id}/reply` | Khách phản hồi lại |
+| `PUT` | `/api/private/feedbacks/{id}/close` | Khách đóng feedback |
 
 ### 👨‍💼 Admin — ROLE_ADMIN
 
@@ -778,6 +816,15 @@ Tổng cộng **40+ endpoints** chia theo 3 nhóm quyền.
 | `POST` | `/api/admin/employees` | Thêm nhân viên |
 | `GET` | `/api/admin/employees/type/{type}` | Lọc theo loại (DRIVER/ASSISTANT) |
 | `GET` | `/api/admin/employees/top-experienced` | Top 5 tài xế kinh nghiệm |
+| `GET` | `/api/admin/revenue` | Thống kê doanh thu (tổng / theo ngày / theo tuyến) |
+| `GET` | `/api/admin/feedbacks` | Inbox feedback (filter status/category/priority) |
+| `GET` | `/api/admin/feedbacks/stats` | Thống kê feedback |
+| `GET` | `/api/admin/feedbacks/{id}` | Chi tiết feedback |
+| `POST` | `/api/admin/feedbacks/{id}/reply` | Admin phản hồi feedback |
+| `PUT` | `/api/admin/feedbacks/{id}/status` | Đổi trạng thái + ưu tiên |
+| `DELETE` | `/api/admin/feedbacks/{id}` | Xóa feedback |
+| `GET` | `/api/admin/dispatcher/trips` | Danh sách chuyến cho điều phối |
+| `PUT` | `/api/admin/dispatcher/trips/{id}/assign` | Phân công nhanh từ dispatcher |
 
 ### 📝 Ví dụ Request/Response
 
@@ -967,17 +1014,21 @@ cloudflared tunnel --url http://localhost:8080
 | **Bước 4**: Chọn ghế | Grid ghế với 3 trạng thái màu: xanh (trống) / đỏ (đã đặt) / xanh dương (đang chọn). |
 | **Bước 5**: Xác nhận | Hiển thị tóm tắt + 2 phương thức thanh toán (VNPay / COD) + nhập SĐT. |
 | **Bước 6**: Thành công | Card vé gradient xanh, mã vé `BUS-YYYYMMDD-XXXXX`. |
+| **Feedback** | Modal phản hồi từ header / trang vé: chọn danh mục + đánh giá sao + liên kết chuyến (tuỳ chọn). |
 
 ### 👨‍💼 Admin Flow
 
 | | |
 |---|---|
 | **Dashboard** | 4 stat cards + 2 progress bars (role distribution, bus status) + bảng cảnh báo bảo hiểm. Hiệu ứng snowfall + gradient cards. |
+| **Doanh thu** | Trang riêng `/admin/revenue` với 4 summary cards (Tổng / Confirmed / Pending / Cancelled) + line chart theo ngày + bar chart theo tuyến. Component `AdminRevenueStats` được tái sử dụng trên Dashboard. |
 | **Quản lý xe** | Bảng với badge trạng thái (AVAILABLE/RUNNING/MAINTENANCE), icon cảnh báo bảo hiểm sắp hết hạn. |
 | **Quản lý chuyến** | Bảng với filter (tuyến, status), modal tạo/sửa có 3 tab: thông tin chuyến / phân công / sơ đồ ghế. |
 | **Sơ đồ ghế admin** | Modal hiển thị sơ đồ ghế với thông tin từng ghế đã đặt (tên khách, SĐT, điểm đón/trả, payment method). |
 | **Quản lý vé** | Bảng filter trạng thái, action button xác nhận/hủy với confirm dialog. |
-| **Real-time notification** | Toast popup góc trên phải khi có event mới (booking.created / payment.vnpay.success). |
+| **Real-time notification** | Toast popup góc trên phải khi có event mới (booking.created / payment.vnpay.success / feedback.created). |
+| **Hộp thư Feedback** | Modal mở từ header: lọc theo trạng thái (NEW / READ / IN_PROGRESS / RESOLVED / CLOSED), tìm kiếm full-text, reply nội tuyến, đổi ưu tiên. Realtime khi có feedback mới. |
+| **Dispatcher** | Dashboard điều phối: danh sách chuyến sắp chạy, phân công nhanh tài xế/phụ xe. |
 
 ---
 

@@ -1,5 +1,5 @@
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
-import { LogOut, LayoutDashboard, Menu } from "lucide-react";
+import { LogOut, LayoutDashboard } from "lucide-react";
 import { useAuthStore } from "../../stores/authStore";
 import { ROLE_LABELS } from "../../utils/constants";
 import Snowfall from "../../components/ui/Snowfall";
@@ -64,7 +64,7 @@ function MainLayout() {
                     <LayoutDashboard className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <div className={`text-xl font-bold ${isCustomer ? "text-white" : "text-white"}`}>XeKhách Pro</div>
+                    <div className="text-xl font-bold text-white">XeKhách Pro</div>
                     <p className={`text-xs ${isCustomer ? "text-pink-300" : "text-slate-500"}`}>
                       {isCustomer ? "Đặt vé trực tuyến" : "Quản lý chuyến xe"}
                     </p>

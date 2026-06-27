@@ -854,7 +854,7 @@ export default function CustomerBookingPage() {
             <button
               onClick={handleProceedFromPickup}
               disabled={!pickupPoint}
-              className="rounded-xl bg-pink-600 px-6 py-2.5 text-sm font-semibold text-white bg-pink-700 disabled:opacity-40 hover:bg-pink-800 transition"
+              className="rounded-xl bg-pink-600 px-6 py-2.5 text-sm font-semibold text-white disabled:opacity-40 hover:bg-pink-700 transition"
             >
               Tiếp tục chọn điểm trả →
             </button>
@@ -927,7 +927,7 @@ export default function CustomerBookingPage() {
             <button
               onClick={handleProceedFromDropoff}
               disabled={!dropoffPoint || loadingSeats}
-              className="rounded-xl bg-pink-600 px-6 py-2.5 text-sm font-semibold text-white bg-pink-700 disabled:opacity-40 hover:bg-pink-800 transition"
+              className="rounded-xl bg-pink-600 px-6 py-2.5 text-sm font-semibold text-white disabled:opacity-40 hover:bg-pink-700 transition"
             >
               {loadingSeats ? "Đang tải ghế..." : "Tiếp tục chọn ghế →"}
             </button>
@@ -1066,7 +1066,7 @@ export default function CustomerBookingPage() {
             <button
               onClick={() => setStep("confirm")}
               disabled={!selectedSeat || selectedSeat.booked}
-              className="rounded-xl bg-pink-600 px-5 py-2.5 text-sm font-semibold text-white bg-pink-700 disabled:cursor-not-allowed disabled:opacity-50 hover:bg-pink-800 transition"
+              className="rounded-xl bg-pink-600 px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 hover:bg-pink-700 transition"
             >
               {selectedSeat ? "Tiếp tục xác nhận" : "Chọn ghế để tiếp tục"}
             </button>
@@ -1199,7 +1199,7 @@ export default function CustomerBookingPage() {
           <button
             onClick={handleConfirm}
             disabled={confirming}
-            className="w-full rounded-xl bg-pink-600 py-3 text-sm font-semibold text-white bg-pink-700 disabled:opacity-60"
+            className="w-full rounded-xl bg-pink-600 py-3 text-sm font-semibold text-white disabled:opacity-60 hover:bg-pink-700 transition"
           >
             {confirming
               ? "Đang xử lý..."
@@ -1301,7 +1301,7 @@ export default function CustomerBookingPage() {
             </Link>
             <button
               onClick={handleReset}
-              className="rounded-xl bg-pink-600 px-5 py-2.5 text-sm font-semibold text-white bg-pink-700"
+              className="rounded-xl bg-pink-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-pink-700"
             >
               Đặt vé khác
             </button>
