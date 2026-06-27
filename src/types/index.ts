@@ -116,7 +116,7 @@ export interface AdminTicket {
   seatNumber: string;
   passengerName: string;
   passengerPhone: string;
-  bookedAt: string;
+  bookedAt: string | null;
   price: number;
   status: 'BOOKED' | 'HOLD' | 'CONFIRMED' | 'EXPIRED' | 'PAID' | 'CANCELLED' | 'REFUNDED';
   pickupPoint: string | null;

@@ -125,7 +125,7 @@ export default function CustomerProfilePage() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="w-full rounded-xl bg-pink-600 py-2.5 text-sm font-semibold text-white bg-pink-700 disabled:opacity-60"
+            className="w-full rounded-xl bg-pink-600 py-2.5 text-sm font-semibold text-white disabled:opacity-60 hover:bg-pink-700 transition"
           >
             {saving ? "Đang lưu..." : "Lưu thay đổi"}
           </button>

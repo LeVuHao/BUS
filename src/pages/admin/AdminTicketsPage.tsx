@@ -197,7 +197,7 @@ const AdminTicketsPage: React.FC = () => {
                         <div className="text-slate-500">Ghế: <span className="font-bold text-indigo-600">{ticket.seatNumber}</span></div>
                       </td>
                       <td className="px-6 py-4 align-top text-slate-500">
-                        {format(new Date(ticket.bookedAt), 'HH:mm dd/MM/yyyy')}
+                        {ticket.bookedAt ? format(new Date(ticket.bookedAt), 'HH:mm dd/MM/yyyy') : '—'}
                       </td>
                       <td className="px-6 py-4 align-top">
                         <div className="flex flex-col gap-2">
