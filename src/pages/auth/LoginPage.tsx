@@ -7,6 +7,8 @@ import { UserRole } from "../../types";
 import { extractApiErrorMessage, extractApiStatus } from "../../utils/apiError";
 import Snowfall from "../../components/ui/Snowfall";
 
+import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
+
 const roleRedirect: Record<UserRole, string> = {
   ADMIN: "/admin/dashboard",
   CUSTOMER: "/customer/booking",
@@ -39,6 +41,23 @@ export default function LoginPage() {
       }
 
       toast.error(displayMessage);
+    }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
+    if (!credentialResponse.credential) {
+      toast.error("Không nhận được token từ Google");
+      return;
+    }
+    
+    try {
+      const user = await useAuthStore.getState().googleLogin(credentialResponse.credential, role);
+      const nextPath = roleRedirect[user.role] ?? "/admin/dashboard";
+      navigate(nextPath);
+      toast.success("Đăng nhập Google thành công!");
+    } catch (error: unknown) {
+      const backendMessage = extractApiErrorMessage(error);
+      toast.error(backendMessage || "Đăng nhập Google thất bại");
     }
   };
 
@@ -212,7 +231,28 @@ export default function LoginPage() {
                 </button>
               </form>
 
-              <div className="login-register-link">
+              <div className="flex items-center gap-4 my-2">
+                <div className="h-px bg-slate-700/50 flex-1"></div>
+                <span className="text-xs text-slate-500 font-medium">HOẶC</span>
+                <div className="h-px bg-slate-700/50 flex-1"></div>
+              </div>
+
+              <div className="flex justify-center w-full bg-white/5 rounded-xl p-2 border border-slate-700/30 hover:bg-white/10 transition-colors">
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={() => {
+                    toast.error("Đăng nhập Google thất bại. Vui lòng thử lại.");
+                  }}
+                  useOneTap
+                  theme="filled_black"
+                  shape="rectangular"
+                  size="large"
+                  text="continue_with"
+                  width="100%"
+                />
+              </div>
+
+              <div className="login-register-link mt-2">
                 Chưa có tài khoản?{" "}
                 <Link to="/auth/register" className="login-register-anchor">
                   Đăng ký ngay

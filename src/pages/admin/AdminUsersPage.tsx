@@ -11,6 +11,7 @@ import {
   AdminUser,
 } from "../../api/admin";
 import { extractApiErrorMessage } from "../../utils/apiError";
+import Pagination from "../../components/ui/Pagination";
 import { UserRole } from "../../types";
 
 const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
@@ -54,6 +55,9 @@ export default function AdminUsersPage() {
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+
   const loadUsers = useCallback(() => {
     setIsLoading(true);
 
@@ -62,7 +66,10 @@ export default function AdminUsersPage() {
       role: filterRole || undefined,
       status: filterStatus || undefined,
     })
-      .then(setUsers)
+      .then((data) => {
+        setUsers(data);
+        setCurrentPage(1);
+      })
       .catch((err) => toast.error(extractApiErrorMessage(err) || "Không thể tải danh sách người dùng"))
       .finally(() => setIsLoading(false));
   }, [keyword, filterRole, filterStatus]);
@@ -70,6 +77,10 @@ export default function AdminUsersPage() {
   useEffect(() => {
     loadUsers();
   }, [loadUsers]);
+
+  const totalPages = Math.ceil(users.length / ITEMS_PER_PAGE);
+  const validCurrentPage = Math.min(currentPage, Math.max(1, totalPages));
+  const paginatedUsers = users.slice((validCurrentPage - 1) * ITEMS_PER_PAGE, validCurrentPage * ITEMS_PER_PAGE);
 
   const handleCreate = async (form: CreateForm) => {
     setIsSaving(true);
@@ -254,14 +265,14 @@ export default function AdminUsersPage() {
                     Đang tải dữ liệu...
                   </td>
                 </tr>
-              ) : users.length === 0 ? (
+              ) : paginatedUsers.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-5 py-14 text-center text-slate-400">
                     Không có người dùng nào
                   </td>
                 </tr>
               ) : (
-                users.map((user) => (
+                paginatedUsers.map((user) => (
                   <tr key={user.id}>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
@@ -349,6 +360,16 @@ export default function AdminUsersPage() {
             </tbody>
           </table>
         </div>
+        
+        {totalPages > 1 && (
+          <div className="border-t border-slate-100 bg-slate-50/50">
+            <Pagination 
+              currentPage={validCurrentPage} 
+              totalPages={totalPages} 
+              onPageChange={setCurrentPage} 
+            />
+          </div>
+        )}
       </div>
 
       {showCreateModal && (

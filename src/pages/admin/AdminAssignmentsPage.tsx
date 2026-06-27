@@ -8,6 +8,7 @@ import {
   getStaffByTrip,
 } from "../../api/admin";
 import { Employee } from "../../types";
+import Pagination from "../../components/ui/Pagination";
 import { extractApiErrorMessage } from "../../utils/apiError";
 import toast from "react-hot-toast";
 import {
@@ -99,6 +100,16 @@ export default function AdminAssignmentsPage() {
 
   const activeTrips = trips.filter((t) => t.status === "SCHEDULED" || t.status === "RUNNING");
   const staffList = activeTab === "drivers" ? drivers : assistants;
+
+  const [currentTripPage, setCurrentTripPage] = useState(1);
+  const TRIPS_PER_PAGE = 5;
+  const totalTripPages = Math.ceil(activeTrips.length / TRIPS_PER_PAGE);
+  const validTripPage = Math.min(currentTripPage, Math.max(1, totalTripPages));
+  const paginatedActiveTrips = activeTrips.slice((validTripPage - 1) * TRIPS_PER_PAGE, validTripPage * TRIPS_PER_PAGE);
+
+  useEffect(() => {
+    setCurrentTripPage(1);
+  }, [trips]);
 
   const handleEmployeeClick = (emp: Employee) => {
     setSelectedEmployee(selectedEmployee?.id === emp.id ? null : emp);
@@ -400,11 +411,11 @@ export default function AdminAssignmentsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {activeTrips.length === 0 ? (
+                  {paginatedActiveTrips.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="px-5 py-14 text-center text-slate-400">Không có chuyến nào đang hoạt động</td>
                     </tr>
-                  ) : activeTrips.map((trip) => {
+                  ) : paginatedActiveTrips.map((trip) => {
                     const driverAssignment = trip.assignments?.find((a) => a.role === "DRIVER");
                     const assistantAssignment = trip.assignments?.find((a) => a.role === "ASSISTANT");
                     return (
@@ -483,6 +494,16 @@ export default function AdminAssignmentsPage() {
                 </tbody>
               </table>
             </div>
+            
+            {totalTripPages > 1 && (
+              <div className="border-t border-slate-100 bg-slate-50/50">
+                <Pagination 
+                  currentPage={validTripPage} 
+                  totalPages={totalTripPages} 
+                  onPageChange={setCurrentTripPage} 
+                />
+              </div>
+            )}
           </div>
         </div>
 

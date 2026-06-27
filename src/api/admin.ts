@@ -306,6 +306,10 @@ export const confirmTicket = async (ticketId: number): Promise<void> => {
   await apiClient.put(`/admin/tickets/${ticketId}/confirm`);
 };
 
+export const markTicketAsPaid = async (ticketId: number): Promise<void> => {
+  await apiClient.put(`/admin/tickets/${ticketId}/mark-paid`);
+};
+
 export const cancelTicketByAdmin = async (ticketId: number): Promise<void> => {
   await apiClient.put(`/admin/tickets/${ticketId}/admin-cancel`);
 };

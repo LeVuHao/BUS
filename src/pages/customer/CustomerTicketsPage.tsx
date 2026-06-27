@@ -5,6 +5,7 @@ import { MessageCircle, X } from "lucide-react";
 import { getMyTickets, cancelTicket, TicketRecord } from "../../api/customer";
 import { getMyFeedbacks } from "../../api/feedback";
 import FeedbackModal from "../../components/feedback/FeedbackModal";
+import Pagination from "../../components/ui/Pagination";
 
 const QR_CODE_INFO = {
   bankId: "VCB",
@@ -171,7 +172,7 @@ interface InvoiceModalProps {
 
 function InvoiceModal({ ticket, hasFeedback, onClose, onCancel, onPay, onOpenFeedback, cancellingId }: InvoiceModalProps) {
   const s = STATUS_MAP[ticket.status] ?? { label: ticket.status, style: "bg-slate-50", dot: "bg-slate-400" };
-  const canPay = ticket.status === "HOLD";
+  const canPay = ticket.status === "HOLD" || ticket.status === "CONFIRMED";
   const canCancel = ticket.status === "HOLD" || ticket.status === "BOOKED";
   const canFeedback = ticket.status !== "CANCELLED" && ticket.status !== "REFUNDED";
 
@@ -486,6 +487,10 @@ export default function CustomerTicketsPage() {
   // State quản lý việc hiển thị modal QR
   const [qrTicket, setQrTicket] = useState<TicketRecord | null>(null);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 6;
+
   // State feedback
   const [feedbackTicketIds, setFeedbackTicketIds] = useState<Set<number>>(new Set());
   const [feedbackTripIds, setFeedbackTripIds] = useState<Set<number>>(new Set());
@@ -509,7 +514,10 @@ export default function CustomerTicketsPage() {
 
   const load = useCallback(() => {
     getMyTickets()
-      .then(setTickets)
+      .then(data => {
+        setTickets(data);
+        setCurrentPage(1); // Reset page on new load
+      })
       .catch(() => toast.error("Không tải được danh sách vé"))
       .finally(() => setLoading(false));
   }, []);
@@ -539,6 +547,12 @@ export default function CustomerTicketsPage() {
 
   const ticketHasFeedback = (t: TicketRecord) => feedbackTripIds.has(t.tripId);
 
+  // Pagination logic
+  const totalPages = Math.ceil(tickets.length / ITEMS_PER_PAGE);
+  // Đảm bảo currentPage hợp lệ nếu danh sách vé thay đổi
+  const validCurrentPage = Math.min(currentPage, Math.max(1, totalPages));
+  const paginatedTickets = tickets.slice((validCurrentPage - 1) * ITEMS_PER_PAGE, validCurrentPage * ITEMS_PER_PAGE);
+
   if (loading)
     return (
       <div className="rounded-2xl bg-white p-10 text-center text-sm text-pink-400 shadow-sm">
@@ -559,7 +573,7 @@ export default function CustomerTicketsPage() {
 
   return (
     <>
-      <div className="rounded-2xl bg-white shadow-sm overflow-hidden print:shadow-none">
+      <div className="rounded-2xl bg-white shadow-sm overflow-hidden print:shadow-none mb-6">
         <div className="border-b border-slate-100 px-6 py-4 flex items-center justify-between print:hidden">
           <div>
             <h1 className="text-base font-semibold text-pink-900">Vé của tôi</h1>
@@ -575,7 +589,7 @@ export default function CustomerTicketsPage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 p-4 print:grid-cols-2">
-          {tickets.map(ticket => (
+          {paginatedTickets.map(ticket => (
             <TicketCard
               key={ticket.id}
               ticket={ticket}
@@ -585,6 +599,16 @@ export default function CustomerTicketsPage() {
             />
           ))}
         </div>
+        
+        {totalPages > 1 && (
+          <div className="border-t border-slate-100 bg-slate-50/50">
+            <Pagination 
+              currentPage={validCurrentPage} 
+              totalPages={totalPages} 
+              onPageChange={setCurrentPage} 
+            />
+          </div>
+        )}
       </div>
 
       {/* Invoice Modal (Chi tiết vé) */}

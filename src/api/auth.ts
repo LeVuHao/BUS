@@ -32,3 +32,9 @@ export function registerRequest(
     .post<LoginResponse>("/public/auth/register", payload)
     .then((response) => response.data);
 }
+
+export function googleLoginRequest(idToken: string, role?: string): Promise<LoginResponse> {
+  return apiClient
+    .post<LoginResponse>("/public/auth/google", { idToken, role })
+    .then((response) => response.data);
+}

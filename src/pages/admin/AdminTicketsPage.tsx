@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { AdminTicket } from '../../types';
-import { getAllTicketsForAdmin, confirmTicket, cancelTicketByAdmin } from '../../api/admin';
+import { getAllTicketsForAdmin, confirmTicket, cancelTicketByAdmin, markTicketAsPaid } from '../../api/admin';
 import StatusBadge from '../../components/ui/StatusBadge';
+import Pagination from '../../components/ui/Pagination';
 import { Search, Download, Filter, Check, X, Loader2, MapPin, Flag } from 'lucide-react';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
@@ -13,6 +14,10 @@ const AdminTicketsPage: React.FC = () => {
   // State quản lý tìm kiếm và bộ lọc
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   // State quản lý hành động xác nhận / hủy vé
   const [actionTicketId, setActionTicketId] = useState<number | null>(null);
@@ -43,15 +48,38 @@ const AdminTicketsPage: React.FC = () => {
     return matchSearch && matchStatus;
   });
 
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
+
+  const totalPages = Math.ceil(filteredTickets.length / ITEMS_PER_PAGE);
+  const validCurrentPage = Math.min(currentPage, Math.max(1, totalPages));
+  const paginatedTickets = filteredTickets.slice((validCurrentPage - 1) * ITEMS_PER_PAGE, validCurrentPage * ITEMS_PER_PAGE);
+
   const handleConfirm = async (ticketId: number) => {
-    if (!window.confirm('Xác nhận đã gọi điện và thông tin chính xác cho vé này?')) return;
+    if (!window.confirm('Xác nhận đã gọi điện và thông tin chính xác cho vé này? Khách vẫn có thể thanh toán sau.')) return;
     setActionTicketId(ticketId);
     try {
       await confirmTicket(ticketId);
       setTickets(prev => prev.map(t => t.ticketId === ticketId ? { ...t, status: 'CONFIRMED' } : t));
-      toast.success('Đã xác nhận vé thành công!');
+      toast.success('Đã xác nhận giữ chỗ thành công!');
     } catch (err: any) {
       toast.error(err?.response?.data?.message || 'Xác nhận vé thất bại');
+    } finally {
+      setActionTicketId(null);
+    }
+  };
+
+  const handleMarkPaid = async (ticketId: number) => {
+    if (!window.confirm('Xác nhận khách đã thanh toán (chuyển khoản hoặc tiền mặt)?')) return;
+    setActionTicketId(ticketId);
+    try {
+      await markTicketAsPaid(ticketId);
+      setTickets(prev => prev.map(t => t.ticketId === ticketId ? { ...t, status: 'PAID' } : t));
+      toast.success('Đã xác nhận thanh toán thành công!');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Cập nhật thanh toán thất bại');
     } finally {
       setActionTicketId(null);
     }
@@ -112,20 +140,20 @@ const AdminTicketsPage: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 w-full md:w-auto">
-            <Filter className="text-indigo-400" size={20} />
+            <Filter className="text-indigo-500" size={20} />
             <select
-              className="w-full md:w-auto py-2.5 px-3 border border-slate-200 bg-slate-50 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 text-slate-700"
+              className="w-full md:w-auto py-2.5 px-4 border border-indigo-200 bg-white rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 text-slate-800 font-medium shadow-sm cursor-pointer"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
-              <option value="ALL">Tất cả trạng thái</option>
-              <option value="HOLD">Chờ xác nhận (HOLD)</option>
-              <option value="CONFIRMED">Đã xác nhận (CONFIRMED)</option>
-              <option value="PAID">Đã thanh toán (PAID)</option>
-              <option value="CANCELLED">Đã hủy (CANCELLED)</option>
-              <option value="REFUNDED">Đã hoàn tiền (REFUNDED)</option>
-              <option value="BOOKED">Đã giữ chỗ (BOOKED)</option>
-              <option value="EXPIRED">Hết hạn (EXPIRED)</option>
+              <option className="bg-white text-slate-800 font-medium py-2" value="ALL">Tất cả trạng thái</option>
+              <option className="bg-white text-slate-800 font-medium py-2" value="HOLD">Chờ xác nhận (HOLD)</option>
+              <option className="bg-white text-slate-800 font-medium py-2" value="CONFIRMED">Đã xác nhận (CONFIRMED)</option>
+              <option className="bg-white text-slate-800 font-medium py-2" value="PAID">Đã thanh toán (PAID)</option>
+              <option className="bg-white text-slate-800 font-medium py-2" value="CANCELLED">Đã hủy (CANCELLED)</option>
+              <option className="bg-white text-slate-800 font-medium py-2" value="REFUNDED">Đã hoàn tiền (REFUNDED)</option>
+              <option className="bg-white text-slate-800 font-medium py-2" value="BOOKED">Đã giữ chỗ (BOOKED)</option>
+              <option className="bg-white text-slate-800 font-medium py-2" value="EXPIRED">Hết hạn (EXPIRED)</option>
             </select>
           </div>
         </div>
@@ -151,7 +179,7 @@ const AdminTicketsPage: React.FC = () => {
                 ) : filteredTickets.length === 0 ? (
                   <tr><td colSpan={7} className="px-6 py-8 text-center text-slate-500">Không tìm thấy vé nào phù hợp.</td></tr>
                 ) : (
-                  filteredTickets.map((ticket) => (
+                  paginatedTickets.map((ticket) => (
                     <tr key={ticket.ticketId} className="hover:bg-indigo-50/40 transition-colors">
                       <td className="px-6 py-4 font-semibold text-indigo-700 align-top">#{ticket.ticketId}</td>
                       <td className="px-6 py-4 align-top">
@@ -202,28 +230,46 @@ const AdminTicketsPage: React.FC = () => {
                       <td className="px-6 py-4 align-top">
                         <div className="flex flex-col gap-2">
                           <StatusBadge status={ticket.status} />
-                          {ticket.status === 'HOLD' && (
-                            <div className="flex items-center gap-2">
+                          {(ticket.status === 'HOLD' || ticket.status === 'CONFIRMED') && (
+                            <div className="flex flex-wrap items-center gap-2 mt-1">
+                              {ticket.status === 'HOLD' && (
+                                <button
+                                  onClick={() => handleConfirm(ticket.ticketId)}
+                                  disabled={actionTicketId === ticket.ticketId}
+                                  className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-green-500 text-white text-xs font-semibold rounded-lg shadow-sm hover:shadow-md hover:from-emerald-600 hover:to-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                >
+                                  {actionTicketId === ticket.ticketId ? (
+                                    <Loader2 size={12} className="animate-spin" />
+                                  ) : (
+                                    <Check size={12} />
+                                  )}
+                                  Giữ chỗ
+                                </button>
+                              )}
+                              
                               <button
-                                onClick={() => handleConfirm(ticket.ticketId)}
+                                onClick={() => handleMarkPaid(ticket.ticketId)}
                                 disabled={actionTicketId === ticket.ticketId}
-                                className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-green-500 text-white text-xs font-semibold rounded-lg shadow-sm hover:shadow-md hover:from-emerald-600 hover:to-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-xs font-semibold rounded-lg shadow-sm hover:shadow-md hover:from-blue-600 hover:to-indigo-600 disabled:opacity-50 transition-all"
                               >
                                 {actionTicketId === ticket.ticketId ? (
                                   <Loader2 size={12} className="animate-spin" />
                                 ) : (
                                   <Check size={12} />
                                 )}
-                                Xác nhận
+                                Đã thu tiền
                               </button>
-                              <button
-                                onClick={() => handleCancel(ticket.ticketId)}
-                                disabled={actionTicketId === ticket.ticketId}
-                                className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-rose-500 to-red-500 text-white text-xs font-semibold rounded-lg shadow-sm hover:shadow-md hover:from-rose-600 hover:to-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                              >
-                                <X size={12} />
-                                Hủy
-                              </button>
+
+                              {ticket.status === 'HOLD' && (
+                                <button
+                                  onClick={() => handleCancel(ticket.ticketId)}
+                                  disabled={actionTicketId === ticket.ticketId}
+                                  className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-rose-500 to-red-500 text-white text-xs font-semibold rounded-lg shadow-sm hover:shadow-md hover:from-rose-600 hover:to-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                >
+                                  <X size={12} />
+                                  Hủy
+                                </button>
+                              )}
                             </div>
                           )}
                         </div>
@@ -234,6 +280,16 @@ const AdminTicketsPage: React.FC = () => {
               </tbody>
             </table>
           </div>
+          
+          {totalPages > 1 && (
+            <div className="border-t border-indigo-50 bg-indigo-50/20">
+              <Pagination 
+                currentPage={validCurrentPage} 
+                totalPages={totalPages} 
+                onPageChange={setCurrentPage} 
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

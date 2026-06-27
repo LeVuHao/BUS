@@ -10,6 +10,8 @@ import {
 } from "../../api/admin";
 import { extractApiErrorMessage } from "../../utils/apiError";
 
+import Pagination from "../../components/ui/Pagination";
+
 const BUS_TYPE_OPTIONS = [
   { value: "SLEEPER", label: "Giường nằm (Sleeper)" },
   { value: "SEAT", label: "Ghế ngồi (Seat)" },
@@ -59,6 +61,9 @@ export default function AdminBusesPage() {
   const [selectedBus, setSelectedBus] = useState<AdminBus | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+
   const loadBuses = useCallback(() => {
     setIsLoading(true);
 
@@ -66,7 +71,10 @@ export default function AdminBusesPage() {
       keyword: keyword || undefined,
       status: filterStatus || undefined,
     })
-      .then(setBuses)
+      .then((data) => {
+        setBuses(data);
+        setCurrentPage(1);
+      })
       .catch(() => toast.error("Không thể tải danh sách xe"))
       .finally(() => setIsLoading(false));
   }, [keyword, filterStatus]);
@@ -74,6 +82,10 @@ export default function AdminBusesPage() {
   useEffect(() => {
     loadBuses();
   }, [loadBuses]);
+
+  const totalPages = Math.ceil(buses.length / ITEMS_PER_PAGE);
+  const validCurrentPage = Math.min(currentPage, Math.max(1, totalPages));
+  const paginatedBuses = buses.slice((validCurrentPage - 1) * ITEMS_PER_PAGE, validCurrentPage * ITEMS_PER_PAGE);
 
   const handleCreate = async (form: CreateForm) => {
     setIsSaving(true);
@@ -206,14 +218,14 @@ export default function AdminBusesPage() {
                     Đang tải dữ liệu...
                   </td>
                 </tr>
-              ) : buses.length === 0 ? (
+              ) : paginatedBuses.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-5 py-14 text-center text-slate-400">
                     Không có xe nào
                   </td>
                 </tr>
               ) : (
-                buses.map((bus) => (
+                paginatedBuses.map((bus) => (
                   <tr key={bus.id}>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
@@ -304,6 +316,16 @@ export default function AdminBusesPage() {
             </tbody>
           </table>
         </div>
+        
+        {totalPages > 1 && (
+          <div className="border-t border-slate-100 bg-slate-50/50">
+            <Pagination 
+              currentPage={validCurrentPage} 
+              totalPages={totalPages} 
+              onPageChange={setCurrentPage} 
+            />
+          </div>
+        )}
       </section>
 
       {showCreateModal && (

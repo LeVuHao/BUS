@@ -226,10 +226,16 @@ public ResponseEntity<List<AdminTicketDTO>> getAllTickets() {
 }
 
     // ==================== TICKET ACTIONS ====================
-
+    // Xác nhận vé
     @PutMapping("/tickets/{id}/confirm")
     public ResponseEntity<TicketDetailResponse> confirmTicket(@PathVariable Long id) {
         return ResponseEntity.ok(adminService.confirmTicket(id));
+    }
+
+    // Đánh dấu vé đã thanh toán
+    @PutMapping("/tickets/{id}/mark-paid")
+    public ResponseEntity<TicketDetailResponse> markTicketAsPaid(@PathVariable Long id) {
+        return ResponseEntity.ok(adminService.markTicketAsPaid(id));
     }
 
     @PutMapping("/tickets/{id}/admin-cancel")

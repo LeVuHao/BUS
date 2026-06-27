@@ -98,6 +98,56 @@ public class UserService {
         return userRepository.findByUsername(username);
     }
 
+    @Transactional
+    public AuthResponse authenticateGoogle(com.business.busmanagement.dto.GoogleAuthRequest request) {
+        String url = "https://oauth2.googleapis.com/tokeninfo?id_token=" + request.getIdToken();
+        org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
+        java.util.Map<String, Object> response;
+        try {
+            response = restTemplate.getForObject(url, java.util.Map.class);
+        } catch (Exception e) {
+            throw new SecurityException("Invalid Google ID Token");
+        }
+
+        if (response == null || response.get("email") == null) {
+            throw new SecurityException("Invalid Google ID Token (no email)");
+        }
+
+        String email = (String) response.get("email");
+        String name = (String) response.get("name");
+        String sub = (String) response.get("sub");
+
+        Optional<User> optionalUser = userRepository.findByEmail(email);
+        User user;
+        if (optionalUser.isPresent()) {
+            user = optionalUser.get();
+            if (user.getStatus() != User.UserStatus.ACTIVE) {
+                throw new SecurityException("Account is not active");
+            }
+        } else {
+            Role customerRole = roleRepository.findByName("CUSTOMER")
+                    .orElseThrow(() -> new IllegalStateException("Required role CUSTOMER is not configured."));
+            
+            user = new User();
+            user.setUsername("google_" + sub);
+            user.setPasswordHash(passwordEncoder.encode(java.util.UUID.randomUUID().toString()));
+            user.setEmail(email);
+            user.setRole(customerRole);
+            user.setStatus(User.UserStatus.ACTIVE);
+            user = userRepository.save(user);
+
+            Passenger passenger = new Passenger();
+            passenger.setUser(user);
+            passenger.setFullName(name != null ? name : email);
+            passenger.setEmail(email);
+            passenger.setPhone("");
+            passengerRepository.save(passenger);
+        }
+
+        String token = jwtService.generateToken(user);
+        return createAuthResponse(token, user);
+    }
+
     /**
      * Tìm user kèm role đã fetch EAGER.
      * Dùng TRONG JwtAuthenticationFilter để tránh LazyInitializationException

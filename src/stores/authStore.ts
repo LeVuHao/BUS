@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware";
 import {
   loginRequest,
   registerRequest,
+  googleLoginRequest,
   LoginRequest,
   RegisterRequest,
 } from "../api/auth";
@@ -22,6 +23,7 @@ interface AuthState {
   isLoading: boolean;
   login: (payload: LoginRequest) => Promise<User>;
   register: (payload: RegisterRequest) => Promise<User>;
+  googleLogin: (idToken: string, role?: string) => Promise<User>;
   logout: () => void;
   setUser: (user: User | null) => void;
 }
@@ -47,6 +49,17 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true });
         try {
           const response = await registerRequest(payload);
+          localStorage.setItem("token", response.token);
+          set({ token: response.token, user: response.user });
+          return response.user;
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+      googleLogin: async (idToken: string, role?: string) => {
+        set({ isLoading: true });
+        try {
+          const response = await googleLoginRequest(idToken, role);
           localStorage.setItem("token", response.token);
           set({ token: response.token, user: response.user });
           return response.user;

@@ -21,6 +21,14 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessConflictException.class)
     public ResponseEntity<ApiErrorResponse> handleConflict(BusinessConflictException ex) {
+        try {
+            java.nio.file.Files.writeString(
+                java.nio.file.Paths.get("app-errors.log"), 
+                LocalDateTime.now() + " - CONFLICT: " + ex.getMessage() + "\n", 
+                java.nio.file.StandardOpenOption.CREATE, 
+                java.nio.file.StandardOpenOption.APPEND
+            );
+        } catch(Exception ignored) {}
         return build(HttpStatus.CONFLICT, ex.getMessage());
     }
 
@@ -54,8 +62,14 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(SecurityException.class)
     public ResponseEntity<ApiErrorResponse> handleForbidden(SecurityException ex) {
-        // SecurityException từ application code = authorization error = 403 Forbidden
-        // (không phải 401 vì 401 = chưa đăng nhập)
+        try {
+            java.nio.file.Files.writeString(
+                java.nio.file.Paths.get("app-errors.log"), 
+                LocalDateTime.now() + " - FORBIDDEN: " + ex.getMessage() + "\n", 
+                java.nio.file.StandardOpenOption.CREATE, 
+                java.nio.file.StandardOpenOption.APPEND
+            );
+        } catch(Exception ignored) {}
         return build(HttpStatus.FORBIDDEN, ex.getMessage());
     }
 
@@ -67,6 +81,16 @@ public class GlobalExceptionHandler {
         if (ex.getCause() != null) {
             details += " | Cause: " + ex.getCause().getClass().getSimpleName() + ": " + ex.getCause().getMessage();
         }
+        
+        try {
+            java.nio.file.Files.writeString(
+                java.nio.file.Paths.get("app-errors.log"), 
+                LocalDateTime.now() + " - ERROR: " + details + "\n", 
+                java.nio.file.StandardOpenOption.CREATE, 
+                java.nio.file.StandardOpenOption.APPEND
+            );
+        } catch(Exception ignored) {}
+
         return build(HttpStatus.INTERNAL_SERVER_ERROR, details);
     }
 

@@ -88,6 +88,14 @@ public class VnpayController {
             return ResponseEntity.ok(error);
         }
 
+        // HACK CHO MÔI TRƯỜNG LOCALHOST: 
+        // Do VNPay không thể gọi IPN về localhost, chúng ta sẽ ép cập nhật database ngay tại bước Return URL.
+        try {
+            vnpayService.processIpn(params);
+        } catch (Exception e) {
+            log.error("Lỗi khi xử lý IPN trực tiếp từ return url", e);
+        }
+
         Map<String, Object> response = new HashMap<>();
         response.put("txnRef", txnRef);
         response.put("responseCode", responseCode);

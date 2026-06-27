@@ -23,6 +23,7 @@ import {
 } from "../../api/admin";
 import { getAdminFeedbackStats } from "../../api/feedback";
 import TripSeatsModal from "./TripSeatsModal";
+import Pagination from "../../components/ui/Pagination";
 import { Employee, TripStatus } from "../../types";
 import { extractApiErrorMessage } from "../../utils/apiError";
 
@@ -194,6 +195,17 @@ export default function AdminTripsPage() {
     );
   });
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+  
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchKeyword, filterStatus, filterRouteId]);
+
+  const totalPages = Math.ceil(filteredTrips.length / ITEMS_PER_PAGE);
+  const validCurrentPage = Math.min(currentPage, Math.max(1, totalPages));
+  const paginatedTrips = filteredTrips.slice((validCurrentPage - 1) * ITEMS_PER_PAGE, validCurrentPage * ITEMS_PER_PAGE);
+
   const handleSaveTrip = async (form: TripFormValues) => {
     setIsSaving(true);
     try {
@@ -358,9 +370,9 @@ export default function AdminTripsPage() {
             onChange={(e) => setFilterRouteId(Number(e.target.value) || "")}
             className="px-4 py-2.5 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[150px]"
           >
-            <option value="">Tất cả tuyến</option>
+            <option className="bg-slate-800 text-white" value="">Tất cả tuyến</option>
             {routes.map((route) => (
-              <option key={route.id} value={route.id}>
+              <option className="bg-slate-800 text-white" key={route.id} value={route.id}>
                 {route.origin} → {route.destination}
               </option>
             ))}
@@ -371,8 +383,9 @@ export default function AdminTripsPage() {
             onChange={(e) => setFilterStatus(e.target.value as TripStatus | "")}
             className="px-4 py-2.5 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[150px]"
           >
+            <option className="bg-slate-800 text-white" value="">Tất cả trạng thái</option>
             {TRIP_STATUS_OPTIONS.map((item) => (
-              <option key={item.value} value={item.value}>{item.label}</option>
+              <option className="bg-slate-800 text-white" key={item.value} value={item.value}>{item.label}</option>
             ))}
           </select>
 
@@ -411,14 +424,14 @@ export default function AdminTripsPage() {
                       </div>
                     </td>
                   </tr>
-                ) : filteredTrips.length === 0 ? (
+                ) : paginatedTrips.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="px-6 py-16 text-center text-slate-400">
                       Không tìm thấy chuyến nào phù hợp
                     </td>
                   </tr>
                 ) : (
-                  filteredTrips.map((trip) => (
+                  paginatedTrips.map((trip) => (
                     <tr key={trip.id} className="hover:bg-white/5 transition-colors">
                       <td className="px-6 py-4">
                         <span className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold text-sm">
@@ -556,6 +569,16 @@ export default function AdminTripsPage() {
               </tbody>
             </table>
           </div>
+          
+          {totalPages > 1 && (
+            <div className="border-t border-white/20 bg-white/5 p-4">
+              <Pagination 
+                currentPage={currentPage} 
+                totalPages={totalPages} 
+                onPageChange={setCurrentPage} 
+              />
+            </div>
+          )}
         </div>
       </div>
 

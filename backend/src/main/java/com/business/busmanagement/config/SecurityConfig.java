@@ -54,7 +54,7 @@ public class SecurityConfig {
                             response.getWriter().write("{\"status\":403,\"error\":\"Forbidden\",\"message\":\"Bạn không có quyền thực hiện thao tác này\"}");
                         }))
                 .authorizeHttpRequests(authz -> authz
-                        .requestMatchers("/api/public/auth/register", "/api/public/auth/login", "/api/health",
+                        .requestMatchers("/api/public/auth/register", "/api/public/auth/login", "/api/public/auth/google", "/api/health",
                                 "/api/debug/**")
                         .permitAll()
                         // VNPay IPN + Return URL — server-to-server / user redirect, không cần auth
