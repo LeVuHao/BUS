@@ -2,7 +2,7 @@
 
 # 🚌 XeKhách Pro — Bus Management & Online Ticketing Platform
 
-### Hệ thống quản lý & đặt vé xe khách trực tuyến — Spring Boot 3 · React 18 · VNPay · SSE Realtime
+### Hệ thống quản lý & đặt vé xe khách trực tuyến — Spring Boot 3 · React 18 · VNPay · Google OAuth · SSE Realtime
 
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2-6DB33F?logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
 [![React](https://img.shields.io/badge/React-18.3-61DAFB?logo=react&logoColor=black)](https://react.dev)
@@ -11,10 +11,11 @@
 [![MySQL](https://img.shields.io/badge/MySQL-8-4479A1?logo=mysql&logoColor=white)](https://www.mysql.com)
 [![JWT](https://img.shields.io/badge/JWT-JJWT%200.11-000000?logo=jsonwebtokens&logoColor=white)]()
 [![VNPay](https://img.shields.io/badge/Payment-VNPay-0072BC)](https://vnpay.vn)
+[![Google OAuth](https://img.shields.io/badge/Auth-Google%20OAuth-4285F4?logo=google&logoColor=white)](https://developers.google.com/identity)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)]()
 [![Status](https://img.shields.io/badge/status-production%20ready-success)]()
 
-> *"Không chỉ là đặt vé — đó là cả một bộ điều phối tuyến xe thời gian thực: từ chọn điểm đón cụ thể, giữ ghế bằng optimistic lock, thanh toán online có xác thực chữ ký HMAC-SHA512, cho đến dashboard admin đẩy notification real-time qua Server-Sent Events."*
+> *"Không chỉ là đặt vé — đó là cả một bộ điều phối tuyến xe thời gian thực: từ đăng nhập một chạm qua Google OAuth, chọn điểm đón cụ thể, giữ ghế bằng optimistic lock, thanh toán online có xác thực chữ ký HMAC-SHA512, cho đến dashboard admin đẩy notification real-time qua Server-Sent Events."*
 
 [Demo](#-demo-flow) · [Tính năng](#-tính-năng-nổi-bật) · [Kiến trúc](#-kiến-trúc-hệ-thống) · [Cài đặt](#-cài-đặt--chạy-nhanh) · [API](#-api-endpoints) · [Sơ đồ vé](#-sơ-đồ-vòng-đời-vé) · [Demo](#-ảnh-minh-hoạ)
 
@@ -61,7 +62,7 @@
 
 ### 🎯 Đối tượng sử dụng
 
-- 🛒 **Khách hàng (CUSTOMER)**: Tìm chuyến, chọn ghế, đặt vé, thanh toán online (VNPay) hoặc COD.
+- 🛒 **Khách hàng (CUSTOMER)**: Đăng nhập nhanh bằng tài khoản thường **hoặc Google OAuth**, tìm chuyến, chọn ghế, đặt vé, thanh toán online (VNPay) hoặc COD.
 - 👨‍💼 **Quản trị viên (ADMIN)**: Quản lý chuyến, xe, tuyến, nhân sự, vé, dashboard realtime.
 
 ---
@@ -72,6 +73,7 @@
 
 | Tính năng | Mô tả chi tiết |
 |---|---|
+| 🔐 **Đăng nhập một chạm với Google** | Nút Google Login trên form đăng nhập — xác thực ID Token qua Google tokeninfo endpoint, backend tự động tạo CUSTOMER mới nếu email chưa tồn tại, đồng thời tạo hồ sơ `Passenger` mặc định. |
 | 🔍 **Tìm chuyến thông minh** | Lọc theo **15 thành phố lớn** × 80+ điểm đón/trả cụ thể. Tự động gợi ý tuyến theo ngày. |
 | 🎯 **Sơ đồ ghế trực quan** | Hiển thị **grid 5 cột × n hàng** cho Limousine/Sleeper/Seat. Tô màu theo trạng thái: còn trống / đã đặt / đang chọn. |
 | 📍 **Điểm đón/trả chi tiết** | Hệ thống 80+ điểm đón cụ thể cho từng thành phố (Văn phòng, Bến xe, Trạm xăng, Đại học, Trung tâm thương mại...). |
@@ -87,11 +89,11 @@
 |---|---|
 | 📊 **Dashboard tổng quan** | 4 stat cards: Users / Buses / Routes / Trips hôm nay + 2 biểu đồ phân bổ + bảng cảnh báo bảo hiểm. |
 | 🔔 **SSE Real-time Notification** | Toast popup khi có vé mới (COD), VNPay thành công hoặc feedback mới. Click → mở modal chi tiết. |
-| 🚌 **Quản lý đội xe** | CRUD 20+ xe với 3 loại: **LIMOUSINE / SLEEPER / SEAT**, theo dõi bảo hiểm & bảo trì. |
-| ⚠️ **Cảnh báo bảo hiểm** | Tự động detect xe **hết hạn** hoặc **sắp hết hạn** (trong 30 ngày). |
-| 🗺️ **Quản lý tuyến & chuyến** | Tạo tuyến mới inline khi tạo chuyến; kiểm tra **trùng lịch xe** (overlap detection). |
-| 👔 **Phân công nhân sự** | Gán 1 tài xế + 1 phụ xe cho mỗi chuyến; gợi ý top 5 tài xế kinh nghiệm cao. |
-| 🎫 **Quản lý vé** | Bảng lọc theo trạng thái (HOLD/CONFIRMED/PAID/CANCELLED), xác nhận/hủy inline. |
+| 🔒 **Quản lý tài khoản** | CRUD users, khóa/mở khóa, reset password, soft-delete (không xóa vĩnh viễn), **phân trang**. |
+| 🚌 **Quản lý đội xe** | CRUD 20+ xe với 3 loại: **LIMOUSINE / SLEEPER / SEAT**, theo dõi bảo hiểm & bảo trì, **phân trang**. |
+| 🗺️ **Quản lý tuyến & chuyến** | Tạo tuyến mới inline khi tạo chuyến; kiểm tra **trùng lịch xe** (overlap detection); **phân trang** danh sách chuyến. |
+| 👔 **Phân công nhân sự** | Gán 1 tài xế + 1 phụ xe cho mỗi chuyến; gợi ý top 5 tài xế kinh nghiệm cao; **phân trang** danh sách phân công. |
+| 🎫 **Quản lý vé** | Bảng lọc theo trạng thái (HOLD/CONFIRMED/PAID/CANCELLED), xác nhận/hủy inline, đánh dấu PAID cho COD đã thu tiền mặt, **phân trang 10 vé/trang**. |
 | 💺 **Sơ đồ ghế admin** | Modal hiển thị chi tiết từng ghế: ai đặt, SĐT, điểm đón/trả, phương thức thanh toán. |
 | 💰 **Quản lý doanh thu** | Tính `estimatedRevenue` (giá × số ghế đặt) và `actualRevenue` (chỉ vé PAID). |
 | 📈 **Trang doanh thu chuyên sâu** | Biểu đồ đường theo ngày/tuần/tháng + bar chart theo tuyến, summary cards (tổng / confirmed / pending / cancelled). |
@@ -103,6 +105,7 @@
 
 - **JWT Bearer Token** với HMAC-SHA256, expire 1 giờ (configurable).
 - **Spring Security** với filter chain riêng cho JWT (trước `AnonymousAuthenticationFilter`).
+- **Google OAuth 2.0**: Verify ID Token qua `https://oauth2.googleapis.com/tokeninfo` trước khi cấp JWT nội bộ.
 - **VNPay checksum** verify HMAC-SHA512 trên cả Return URL và IPN.
 - **CORS** allowlist chặt qua env var `APP_CORS_ALLOWED_ORIGINS`.
 - **Password hashing** bằng BCrypt (Spring Security default).
@@ -134,8 +137,13 @@
 │  ┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────────┐  │
 │  │  📡 REST Controllers│  │  📡 SSE Broadcaster │  │  📡 VNPay Webhook   │  │
 │  │  /api/public/**     │  │  /admin/notifications│  │  /public/payment/   │  │
-│  │  /api/private/**    │  │  /stream (SSE)      │  │  vnpay/ipn (POST)   │  │
+│  │  ├── /auth/login     │  │  /stream (SSE)      │  │  vnpay/ipn (POST)   │  │
+│  │  ├── /auth/google    │  │                     │  │                     │  │
+│  │  └── /auth/register  │  │                     │  │                     │  │
+│  │  /api/private/**     │  │                     │  │                     │  │
 │  │  /api/admin/**      │  │                     │  │                     │  │
+│  │  └── /tickets/{id}/  │  │                     │  │                     │  │
+│  │      mark-paid       │  │                     │  │                     │  │
 │  └──────────┬──────────┘  └──────────┬──────────┘  └──────────┬──────────┘  │
 │             │                         │                         │             │
 │  ┌──────────▼─────────────────────────▼─────────────────────────▼──────────┐  │
@@ -182,6 +190,7 @@
 | ORM | Hibernate + Spring Data JPA |
 | Database | MySQL 8.0 (Connector/J 8.0.33) |
 | Auth | JWT (jjwt 0.11.5) + Spring Security |
+| Auth | Google OAuth (verify ID Token qua `https://oauth2.googleapis.com/tokeninfo`) |
 | Payment | VNPay sandbox API v2.1.0 |
 | Real-time | Server-Sent Events (SseEmitter) |
 | Build | Maven |
@@ -201,6 +210,7 @@
 | Toast | react-hot-toast 2.5 |
 | Date | date-fns 4.1 |
 | Realtime | EventSource (native browser API) |
+| Auth UI | @react-oauth/google 0.13 (Google Login button + GoogleOAuthProvider) |
 
 ### 🎨 Hệ thống Theme (2 giao diện)
 
@@ -277,7 +287,17 @@ npm run dev
 | Role | URL | Tài khoản |
 |---|---|---|
 | 👨‍💼 **Admin** | http://localhost:5173/auth/login | `admin` / `ChangeMe@123` |
-| 🛒 **Customer** | http://localhost:5173/auth/register | Tự đăng ký |
+| 🛒 **Customer** | http://localhost:5173/auth/register | Tự đăng ký — **hoặc** nhấn nút Google Login (cần cấu hình `VITE_GOOGLE_CLIENT_ID`) |
+
+### Cấu hình Google OAuth (tuỳ chọn)
+
+Tạo file `.env` ở thư mục gốc dự án (`D:\metbus\BUS\.env`) với nội dung:
+
+```bash
+VITE_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+```
+
+Lấy Client ID tại [Google Cloud Console → Credentials → OAuth 2.0 Client IDs](https://console.cloud.google.com/apis/credentials). Authorized JavaScript origins phải bao gồm `http://localhost:5173`. Sau khi tạo, **khởi động lại** `npm run dev` để Vite nhận env mới.
 
 ### Chạy full-stack 1 lệnh (tuỳ chọn)
 
@@ -309,6 +329,16 @@ File cấu hình: `backend/src/main/resources/application.properties`
 | `VNPAY_RETURN_URL` | Cloudflare tunnel | Frontend nhận kết quả |
 | `VNPAY_IPN_URL` | Cloudflare tunnel | Server-to-server callback |
 | `VNPAY_EXPIRE_MINUTES` | `15` | URL thanh toán hết hạn sau N phút |
+
+### Biến môi trường Frontend (Vite)
+
+Các biến này được đọc qua `import.meta.env` và phải khai báo trong file `.env` ở **thư mục gốc dự án** (`D:\metbus\BUS\.env`):
+
+| Biến | Mặc định | Mô tả |
+|---|---|---|
+| `VITE_GOOGLE_CLIENT_ID` | `YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com` | Google OAuth Client ID — lấy từ Google Cloud Console |
+
+> **Lưu ý**: Các biến frontend phải có tiền tố `VITE_` để Vite expose chúng ra client bundle. Nếu đặt sai tên, code sẽ trả về `undefined` và Google Login sẽ không hoạt động. Sau khi đổi `.env`, **khởi động lại** `npm run dev` để Vite nhận env mới.
 
 ### Setup cho Production
 
@@ -354,6 +384,7 @@ BUS/
 │   │   ├── 📁 dto/                           # Request/Response DTOs (25+ files)
 │   │   │   ├── admin/                        # AdminDashboard, TicketDetail, TripDetail...
 │   │   │   ├── AuthResponse.java
+│   │   │   ├── GoogleAuthRequest.java        # 🔐 DTO cho đăng nhập Google OAuth
 │   │   │   ├── BookTicketRequest.java
 │   │   │   └── ...
 │   │   ├── 📁 exception/                     # Global error handling
@@ -393,12 +424,12 @@ BUS/
 │   │   └── feedback.ts                       # 📬 Feedback (customer + admin)
 │   ├── 📁 components/
 │   │   ├── 📁 layout/                        # MainLayout, ProtectedRoute
-│   │   ├── 📁 ui/                            # StatusBadge, Snowfall
+│   │   ├── 📁 ui/                            # StatusBadge, Snowfall, Pagination
 │   │   ├── 📁 admin/                         # EmployeeInfoSection, FeedbackInboxModal
 │   │   ├── 📁 customer/                      # BookingHero
 │   │   └── 📁 feedback/                      # FeedbackModal (customer submit)
 │   ├── 📁 pages/
-│   │   ├── 📁 auth/                          # LoginPage, RegisterPage
+│   │   ├── 📁 auth/                          # LoginPage (Google login), RegisterPage
 │   │   ├── 📁 customer/                      # CustomerBookingPage (1300+ dòng!)
 │   │   │   ├── CustomerBookingPage.tsx       # 🎯 6-step booking flow
 │   │   │   ├── CustomerTicketsPage.tsx
@@ -753,7 +784,8 @@ Tổng cộng **40+ endpoints** chia theo 3 nhóm quyền.
 | Method | Endpoint | Mô tả |
 |---|---|---|
 | `POST` | `/api/public/auth/register` | Đăng ký CUSTOMER mới |
-| `POST` | `/api/public/auth/login` | Đăng nhập → JWT token |
+| `POST` | `/api/public/auth/login` | Đăng nhập username/password → JWT token |
+| `POST` | `/api/public/auth/google` | Đăng nhập bằng Google ID Token (OAuth 2.0) → JWT token |
 | `GET` | `/api/public/trips` | Lấy tất cả chuyến tương lai (30 ngày) |
 | `GET` | `/api/public/trips/search` | Tìm theo `origin`, `destination`, `date` |
 | `GET` | `/api/public/trips/{tripId}/seats` | Sơ đồ ghế của 1 chuyến |
@@ -811,6 +843,7 @@ Tổng cộng **40+ endpoints** chia theo 3 nhóm quyền.
 | `GET` | `/api/admin/tickets/{id}` | Chi tiết vé |
 | `GET` | `/api/admin/tickets/all` | Tất cả vé (cho admin tickets page) |
 | `PUT` | `/api/admin/tickets/{id}/confirm` | Xác nhận vé (gọi điện xác nhận) |
+| `PUT` | `/api/admin/tickets/{id}/mark-paid` | Đánh dấu vé đã thanh toán (dùng cho COD/admin xác nhận tiền mặt) |
 | `PUT` | `/api/admin/tickets/{id}/admin-cancel` | Admin hủy vé |
 | `GET` | `/api/admin/employees` | Danh sách nhân viên |
 | `POST` | `/api/admin/employees` | Thêm nhân viên |
@@ -827,6 +860,34 @@ Tổng cộng **40+ endpoints** chia theo 3 nhóm quyền.
 | `PUT` | `/api/admin/dispatcher/trips/{id}/assign` | Phân công nhanh từ dispatcher |
 
 ### 📝 Ví dụ Request/Response
+
+#### Đăng nhập Google
+
+```http
+POST /api/public/auth/google
+Content-Type: application/json
+
+{
+  "idToken": "eyJhbGciOiJSUzI1NiIsImtpZCI6IjE4M2E4ZGYx...",
+  "role": "CUSTOMER"
+}
+```
+
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiJ9...",
+  "user": {
+    "id": 42,
+    "username": "google_1234567890",
+    "fullName": "Nguyễn Văn A",
+    "email": "nguyenvana@gmail.com",
+    "role": "CUSTOMER",
+    "phone": ""
+  }
+}
+```
+
+> **Lưu ý**: User đăng nhập bằng Google **lần đầu** sẽ được tự động tạo CUSTOMER với username `google_<sub>`, mật khẩu ngẫu nhiên (UUID) và hồ sơ `Passenger` mặc định lấy tên + email từ Google. Những lần sau, hệ thống tự lookup theo email.
 
 #### Đặt vé mới
 ```http
@@ -1001,6 +1062,23 @@ cloudflared tunnel --url http://localhost:8080
 #    để chống race condition. Reload trang và chọn ghế khác.
 ```
 
+### ❌ Google Login không hoạt động
+
+```bash
+# Lỗi: Nút Google hiển thị "Sign in with Google" nhưng bấm không có phản hồi
+# → Thiếu VITE_GOOGLE_CLIENT_ID. Tạo file .env ở thư mục gốc với:
+echo "VITE_GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com" > .env
+# → Khởi động lại npm run dev.
+
+# Lỗi: "Invalid Google ID Token"
+# → Token đã hết hạn (Google ID Token chỉ sống ~1 giờ) hoặc Client ID chưa
+#    được thêm vào Authorized JavaScript origins của Google Console.
+#    Thêm http://localhost:5173 vào origins, đợi 5 phút rồi thử lại.
+
+# Lỗi: "Account is not active"
+# → Tài khoản Google đã đăng nhập trước đó nhưng admin đã khoá. Liên hệ admin.
+```
+
 ---
 
 ## 📸 Ảnh minh hoạ
@@ -1009,6 +1087,7 @@ cloudflared tunnel --url http://localhost:8080
 
 | | |
 |---|---|
+| **Bước 0**: Đăng nhập | Form đăng nhập gồm username/password **và** nút "Sign in with Google". Sau khi xác thực, frontend lưu JWT vào Zustand (persist) rồi redirect theo role (ADMIN → `/admin/dashboard`, CUSTOMER → `/customer/booking`). |
 | **Bước 1**: Tìm chuyến | Form với 3 trường: Điểm đi / Điểm đến / Ngày đi. Hiển thị danh sách chuyến với progress bar tỉ lệ đầy ghế. |
 | **Bước 2-3**: Chọn điểm đón/trả | City picker + collapsible list các điểm cụ thể (VP, Bến xe, Trạm xăng, ĐH...). |
 | **Bước 4**: Chọn ghế | Grid ghế với 3 trạng thái màu: xanh (trống) / đỏ (đã đặt) / xanh dương (đang chọn). |
@@ -1025,7 +1104,7 @@ cloudflared tunnel --url http://localhost:8080
 | **Quản lý xe** | Bảng với badge trạng thái (AVAILABLE/RUNNING/MAINTENANCE), icon cảnh báo bảo hiểm sắp hết hạn. |
 | **Quản lý chuyến** | Bảng với filter (tuyến, status), modal tạo/sửa có 3 tab: thông tin chuyến / phân công / sơ đồ ghế. |
 | **Sơ đồ ghế admin** | Modal hiển thị sơ đồ ghế với thông tin từng ghế đã đặt (tên khách, SĐT, điểm đón/trả, payment method). |
-| **Quản lý vé** | Bảng filter trạng thái, action button xác nhận/hủy với confirm dialog. |
+| **Quản lý vé** | Bảng filter trạng thái, search theo tên/SĐT/mã vé, action button **xác nhận / đánh dấu PAID / hủy** với confirm dialog, **phân trang 10 vé/trang**. |
 | **Real-time notification** | Toast popup góc trên phải khi có event mới (booking.created / payment.vnpay.success / feedback.created). |
 | **Hộp thư Feedback** | Modal mở từ header: lọc theo trạng thái (NEW / READ / IN_PROGRESS / RESOLVED / CLOSED), tìm kiếm full-text, reply nội tuyến, đổi ưu tiên. Realtime khi có feedback mới. |
 | **Dispatcher** | Dashboard điều phối: danh sách chuyến sắp chạy, phân công nhanh tài xế/phụ xe. |
