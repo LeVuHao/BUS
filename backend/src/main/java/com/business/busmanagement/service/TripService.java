@@ -11,14 +11,19 @@ package com.business.busmanagement.service;
 import com.business.busmanagement.dto.TripCreateRequest;
 import com.business.busmanagement.dto.TripResponse;
 import com.business.busmanagement.dto.TripSearchResponse;
+import com.business.busmanagement.dto.TripWithAssignmentsDTO;
 import com.business.busmanagement.exception.ResourceNotFoundException;
 import com.business.busmanagement.model.Bus;
+import com.business.busmanagement.model.Employee;
 import com.business.busmanagement.model.Route;
 import com.business.busmanagement.model.Trip;
+import com.business.busmanagement.model.TripAssignment;
 import com.business.busmanagement.repository.BusRepository;
+import com.business.busmanagement.repository.EmployeeRepository;
 import com.business.busmanagement.repository.RouteRepository;
 import com.business.busmanagement.repository.SeatRepository;
 import com.business.busmanagement.repository.TicketRepository;
+import com.business.busmanagement.repository.TripAssignmentRepository;
 import com.business.busmanagement.repository.TripRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,8 +32,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -39,6 +49,8 @@ public class TripService {
     private final BusRepository busRepository;
     private final SeatRepository seatRepository;
     private final TicketRepository ticketRepository;
+    private final TripAssignmentRepository tripAssignmentRepository;
+    private final EmployeeRepository employeeRepository;
 
     /**
      * Lấy tất cả chuyến tương lai (không filter theo status).
@@ -129,6 +141,71 @@ public class TripService {
                 .stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    /**
+     * PERFORMANCE (fix 2026-06-30): trả về trips KÈM danh sách phân công trong 1 round-trip.
+     * Trước đây: FE phải gọi /admin/trip-assignments/{id} cho MỖI trip → N+1.
+     * Giờ: 3 query batch:
+     *   1. searchTrips(...) - lấy danh sách trips theo filter
+     *   2. tripAssignmentRepository.findByTripIdIn(tripIds) - 1 query gom assignments
+     *   3. employeeRepository.findAllById(employeeIds) - 1 query gom tên nhân viên
+     * → 3 queries total thay cho 1 + N + M.
+     */
+    @Transactional(readOnly = true)
+    public List<TripWithAssignmentsDTO> getTripsWithAssignments(LocalDate date, Long routeId, Trip.TripStatus status) {
+        LocalDateTime from = date != null ? date.atStartOfDay() : null;
+        LocalDateTime to = date != null ? date.plusDays(1).atStartOfDay() : null;
+
+        List<Trip> trips = tripRepository.searchTrips(from, to, routeId, status);
+        if (trips.isEmpty()) return List.of();
+
+        // Step 1: collect tripIds
+        List<Long> tripIds = trips.stream()
+                .map(Trip::getId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        // Step 2: batch-fetch assignments (1 query)
+        List<TripAssignment> allAssignments = tripAssignmentRepository.findByTripIdIn(tripIds);
+
+        // Step 3: collect employeeIds, batch-fetch names (1 query)
+        Set<Long> employeeIds = allAssignments.stream()
+                .map(TripAssignment::getEmployeeId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, String> nameByEmployeeId = new HashMap<>();
+        if (!employeeIds.isEmpty()) {
+            List<Employee> employees = employeeRepository.findAllById(employeeIds);
+            for (Employee e : employees) {
+                if (e.getId() != null && e.getFullName() != null) {
+                    nameByEmployeeId.put(e.getId(), e.getFullName());
+                }
+            }
+        }
+
+        // Group assignments by tripId for O(1) lookup
+        Map<Long, List<TripWithAssignmentsDTO.AssignmentDTO>> byTripId = new HashMap<>();
+        for (TripAssignment a : allAssignments) {
+            TripWithAssignmentsDTO.AssignmentDTO dto = new TripWithAssignmentsDTO.AssignmentDTO(
+                    a.getId(),
+                    a.getTripId(),
+                    a.getEmployeeId(),
+                    nameByEmployeeId.get(a.getEmployeeId()),
+                    a.getAssignmentRole() != null ? a.getAssignmentRole().name() : null
+            );
+            byTripId.computeIfAbsent(a.getTripId(), k -> new ArrayList<>()).add(dto);
+        }
+
+        // Step 4: assemble
+        List<TripWithAssignmentsDTO> result = new ArrayList<>(trips.size());
+        for (Trip t : trips) {
+            List<TripWithAssignmentsDTO.AssignmentDTO> assignments =
+                    byTripId.getOrDefault(t.getId(), List.of());
+            TripResponse tripResp = toResponse(t);
+            result.add(new TripWithAssignmentsDTO(tripResp, assignments));
+        }
+        return result;
     }
 
     @Transactional

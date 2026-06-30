@@ -14,6 +14,7 @@ package com.business.busmanagement.service;
 
 import com.business.busmanagement.dto.TripCreateRequest;
 import com.business.busmanagement.dto.TripResponse;
+import com.business.busmanagement.dto.TripWithAssignmentsDTO;
 import com.business.busmanagement.dto.admin.*;
 import com.business.busmanagement.exception.BusinessConflictException;
 import com.business.busmanagement.exception.ResourceNotFoundException;
@@ -39,6 +40,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
@@ -64,49 +66,39 @@ public class AdminService {
 
     @Transactional(readOnly = true)
     public AdminDashboardResponse getDashboard() {
-        List<User> visibleUsers = userRepository.findAll()
-                .stream()
-                .filter(user -> user.getStatus() != User.UserStatus.INACTIVE)
-                .collect(Collectors.toList());
-
-        long totalUsers = visibleUsers.size();
+        // PERFORMANCE (fix 2026-06-30):
+        // Trước đây load findAll() users, findAll() trips, findAll() buses rồi filter trong Java.
+        // Giờ thay bằng COUNT queries (gần như O(1) với index) - load 0 entity, chỉ trả về số.
+        long totalUsers = userRepository.countByStatusNot(User.UserStatus.INACTIVE);
         long totalBuses = busRepository.count();
         long totalRoutes = routeRepository.count();
 
         LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
         LocalDateTime endOfDay = LocalDate.now().atTime(LocalTime.MAX);
-        // Dashboard: đếm tất cả trips trong ngày (không filter status)
-        long todayTrips = tripRepository.findAll()
-                .stream()
-                .filter(t -> t.getDepartureTime() != null
-                        && !t.getDepartureTime().isBefore(startOfDay)
-                        && t.getDepartureTime().isBefore(endOfDay))
-                .count();
+        long todayTrips = tripRepository.countByDepartureTimeBetween(startOfDay, endOfDay);
 
-        List<Role> roles = roleRepository.findAll();
-        List<AdminDashboardResponse.RoleCount> roleDistribution = roles.stream()
-                .map(role -> {
-                    String normalizedRole = RoleNormalizer.normalize(role.getName());
-
-                    long count = visibleUsers.stream()
-                            .filter(user -> user.getRole() != null)
-                            .filter(user -> normalizedRole.equalsIgnoreCase(
-                                    RoleNormalizer.normalize(user.getRole().getName())))
-                            .count();
-
-                    return new AdminDashboardResponse.RoleCount(normalizedRole, count);
+        // Role distribution: 1 GROUP BY query thay cho O(M×N) loop
+        List<Object[]> roleRows = userRepository.countActiveUsersGroupedByRole();
+        List<AdminDashboardResponse.RoleCount> roleDistribution = roleRows.stream()
+                .map(row -> {
+                    String roleName = RoleNormalizer.normalize((String) row[0]);
+                    Long count = (Long) row[1];
+                    return new AdminDashboardResponse.RoleCount(roleName, count);
                 })
                 .filter(roleCount -> roleCount.getCount() > 0)
                 .collect(Collectors.toList());
 
-        List<Bus> allBuses = busRepository.findAll();
-        List<AdminDashboardResponse.BusStatusCount> busStatusDistribution = allBuses.stream()
-                .collect(Collectors.groupingBy(bus -> bus.getStatus().name()))
-                .entrySet()
-                .stream()
-                .map(entry -> new AdminDashboardResponse.BusStatusCount(entry.getKey(), entry.getValue().size()))
+        // Bus status distribution: 1 GROUP BY query thay cho findAll + groupingBy + size
+        List<Object[]> busStatusRows = busRepository.countBusesGroupedByStatus();
+        List<AdminDashboardResponse.BusStatusCount> busStatusDistribution = busStatusRows.stream()
+                .map(row -> new AdminDashboardResponse.BusStatusCount(
+                        ((Bus.BusStatus) row[0]).name(),
+                        (Long) row[1]))
                 .collect(Collectors.toList());
 
+        // Insurance alerts: vẫn cần load buses (cần xem expiryDate từng cái)
+        // → Không thể GROUP BY được, giữ logic cũ nhưng giới hạn scan tối đa
+        List<Bus> allBuses = busRepository.findAll();
         List<AdminDashboardResponse.BusInsuranceAlert> insuranceAlerts = buildInsuranceAlerts(allBuses);
 
         return new AdminDashboardResponse(
@@ -171,7 +163,8 @@ public class AdminService {
             users = userRepository.findAll();
         }
 
-        return users.stream()
+        // Filter role/status trước khi batch-load passengers (giảm tập userIds)
+        List<User> filtered = users.stream()
                 .filter(user -> {
                     if (role != null && !role.isBlank()) {
                         String normalizedRole = RoleNormalizer.normalize(user.getRole().getName());
@@ -188,7 +181,28 @@ public class AdminService {
 
                     return user.getStatus() != User.UserStatus.INACTIVE;
                 })
-                .map(this::toUserListResponse)
+                .collect(Collectors.toList());
+
+        if (filtered.isEmpty()) return List.of();
+
+        // PERFORMANCE (fix N+1): gom toàn bộ userId, chỉ gọi 1 query batch tìm passenger.
+        // Trước đây mỗi user = 1 query findByUserId → 100 users = 100 queries.
+        // Sau: 1 query IN (...) batch.
+        Set<Long> userIds = filtered.stream()
+                .map(User::getId)
+                .collect(Collectors.toSet());
+        Map<Long, String> fullNameByUserId = new HashMap<>();
+        if (!userIds.isEmpty()) {
+            List<Passenger> allPassengers = passengerRepository.findAllByUserIdIn(userIds);
+            for (Passenger p : allPassengers) {
+                if (p.getUser() != null && p.getUser().getId() != null && p.getFullName() != null) {
+                    fullNameByUserId.put(p.getUser().getId(), p.getFullName());
+                }
+            }
+        }
+
+        return filtered.stream()
+                .map(u -> toUserListResponse(u, fullNameByUserId.get(u.getId())))
                 .collect(Collectors.toList());
     }
 
@@ -316,30 +330,17 @@ public class AdminService {
 
     @Transactional(readOnly = true)
     public List<BusListResponse> getBuses(String keyword, String status) {
-        List<Bus> buses;
+        String normalizedStatus = (status != null && !status.isBlank()) ? status.toUpperCase() : null;
+        String normalizedKeyword = (keyword != null && !keyword.isBlank()) ? keyword : null;
 
-        if (keyword != null && !keyword.isBlank()) {
-            String kw = keyword.toLowerCase();
-
-            buses = busRepository.findAll()
-                    .stream()
-                    .filter(bus -> bus.getLicensePlate().toLowerCase().contains(kw))
-                    .collect(Collectors.toList());
-        } else {
-            buses = busRepository.findAll();
-        }
+        // PERFORMANCE (fix): search bằng DB thay vì findAll + filter trong Java.
+        // Trước đây load toàn bộ buses rồi mới filter licensePlate → RAM cao + chậm.
+        List<Bus> buses = busRepository.searchBuses(normalizedKeyword, normalizedStatus);
 
         LocalDate today = LocalDate.now();
         LocalDate thirtyDays = today.plusDays(30);
 
         return buses.stream()
-                .filter(bus -> {
-                    if (status != null && !status.isBlank()) {
-                        return bus.getStatus().name().equalsIgnoreCase(status);
-                    }
-
-                    return true;
-                })
                 .map(bus -> new BusListResponse(
                         bus.getId(),
                         bus.getLicensePlate(),
@@ -547,6 +548,11 @@ public class AdminService {
     @Transactional(readOnly = true)
     public List<TripResponse> getTrips(LocalDate date, Long routeId, Trip.TripStatus status) {
         return tripService.getTrips(date, routeId, status);
+    }
+
+    @Transactional(readOnly = true)
+    public List<TripWithAssignmentsDTO> getTripsWithAssignments(LocalDate date, Long routeId, Trip.TripStatus status) {
+        return tripService.getTripsWithAssignments(date, routeId, status);
     }
 
     @Transactional
@@ -1243,7 +1249,7 @@ public class AdminService {
         );
     }
 
-    private UserListResponse toUserListResponse(User user) {
+    private UserListResponse toUserListResponse(User user, String precomputedFullName) {
         UserListResponse response = new UserListResponse();
 
         response.setId(user.getId());
@@ -1254,12 +1260,22 @@ public class AdminService {
         response.setStatus(user.getStatus() != null ? user.getStatus().name() : "ACTIVE");
         response.setCreatedAt(user.getCreatedAt());
 
-        Optional<Passenger> passenger = passengerRepository.findByUserId(user.getId());
-        if (passenger.isPresent()) {
-            response.setFullName(passenger.get().getFullName());
+        if (precomputedFullName != null) {
+            response.setFullName(precomputedFullName);
+        } else {
+            // Fallback cho code path cũ (không qua batch loader) — vẫn 1 query lazy.
+            Optional<Passenger> passenger = passengerRepository.findByUserId(user.getId());
+            if (passenger.isPresent()) {
+                response.setFullName(passenger.get().getFullName());
+            }
         }
 
         return response;
+    }
+
+    /** Backward-compat overload. */
+    private UserListResponse toUserListResponse(User user) {
+        return toUserListResponse(user, null);
     }
 
     private UserDetailResponse toUserDetailResponse(User user) {

@@ -10,6 +10,7 @@ import {
   getAllEmployees,
   assignStaffToTrip,
   createEmployee,
+  updateEmployee,
   getStaffByTrip,
 } from "../../api/admin";
 import { Employee } from "../../types";
@@ -37,6 +38,7 @@ import {
   TrendingUp,
   CheckSquare,
   UserCheck,
+  Pencil,
 } from "lucide-react";
 
 const STAFF_BADGES: Record<string, {
@@ -69,6 +71,7 @@ export default function AdminAssignmentsPage() {
   const [selectedTripAssignments, setSelectedTripAssignments] = useState<Record<number, { driverId: string; assistantId: string }>>({});
   const [isSaving, setIsSaving] = useState<number | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
   // Form thêm nhân sự (từ AdminEmployeesPage)
   const [formData, setFormData] = useState({
@@ -146,7 +149,34 @@ export default function AdminAssignmentsPage() {
     }
   };
 
-  // Xử lý thêm nhân sự mới
+  // Mở modal ở chế độ Thêm (reset editingEmployee + formData)
+  const openAddModal = () => {
+    setEditingEmployee(null);
+    setFormData({ fullName: "", phone: "", hometown: "", experienceYears: "", employeeType: "DRIVER", status: "ACTIVE" });
+    setShowAddModal(true);
+  };
+
+  // Mở modal ở chế độ Sửa (prefill formData từ nhân viên đang chọn)
+  const openEditModal = (emp: Employee) => {
+    setEditingEmployee(emp);
+    setFormData({
+      fullName: emp.fullName ?? "",
+      phone: emp.phone ?? "",
+      hometown: emp.hometown ?? "",
+      experienceYears: emp.experienceYears != null ? String(emp.experienceYears) : "",
+      employeeType: (emp.employeeType === "ASSISTANT" ? "ASSISTANT" : "DRIVER") as "DRIVER" | "ASSISTANT",
+      status: (emp.status === "INACTIVE" ? "INACTIVE" : "ACTIVE") as "ACTIVE" | "INACTIVE",
+    });
+    setShowAddModal(true);
+  };
+
+  // Đóng modal — reset cả editingEmployee để lần mở sau không bị dính chế độ Sửa
+  const closeAddModal = () => {
+    setShowAddModal(false);
+    setEditingEmployee(null);
+  };
+
+  // Xử lý Thêm / Cập nhật nhân sự (cùng 1 form, phân biệt qua editingEmployee)
   const handleAddStaff = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.fullName || !formData.phone) {
@@ -164,13 +194,18 @@ export default function AdminAssignmentsPage() {
       if (formData.hometown) payload.hometown = formData.hometown;
       if (formData.experienceYears) payload.experienceYears = Number(formData.experienceYears);
 
-      await createEmployee(payload);
-      toast.success("Thêm nhân sự thành công!");
-      setShowAddModal(false);
+      if (editingEmployee) {
+        await updateEmployee(editingEmployee.id, payload);
+        toast.success("Cập nhật nhân sự thành công!");
+      } else {
+        await createEmployee(payload);
+        toast.success("Thêm nhân sự thành công!");
+      }
+      closeAddModal();
       setFormData({ fullName: "", phone: "", hometown: "", experienceYears: "", employeeType: "DRIVER", status: "ACTIVE" });
       await loadData();
     } catch (err) {
-      toast.error(extractApiErrorMessage(err) || "Có lỗi khi thêm nhân sự!");
+      toast.error(extractApiErrorMessage(err) || (editingEmployee ? "Có lỗi khi cập nhật nhân sự!" : "Có lỗi khi thêm nhân sự!"));
     } finally {
       setIsSubmitting(false);
     }
@@ -255,7 +290,7 @@ export default function AdminAssignmentsPage() {
                 <CheckCircle className="h-4 w-4" /> Làm mới
               </button>
               <button
-                onClick={() => setShowAddModal(true)}
+                onClick={openAddModal}
                 className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-indigo-600 text-sm font-semibold rounded-2xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300"
               >
                 <Plus className="h-4 w-4" /> Thêm nhân sự
@@ -338,7 +373,7 @@ export default function AdminAssignmentsPage() {
               <div className="rounded-2xl bg-white border border-indigo-100 p-8 text-center text-slate-500 shadow-sm">
                 <Users className="h-10 w-10 mx-auto mb-2 opacity-30 text-indigo-300" />
                 <p>Chưa có {activeTab === "drivers" ? "tài xế" : "phụ xe"} nào.</p>
-                <button onClick={() => setShowAddModal(true)} className="mt-3 text-sm text-indigo-600 underline hover:text-indigo-700">
+                <button onClick={openAddModal} className="mt-3 text-sm text-indigo-600 underline hover:text-indigo-700">
                   + Thêm nhân sự mới
                 </button>
               </div>
@@ -647,6 +682,16 @@ export default function AdminAssignmentsPage() {
                     ))}
                   </div>
                 </div>
+
+                {/* Nút Cập nhật thông tin nhân sự */}
+                <button
+                  type="button"
+                  onClick={() => openEditModal(selectedEmployee)}
+                  className="mt-4 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-sm font-semibold rounded-xl shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-300"
+                >
+                  <Pencil className="h-4 w-4" />
+                  Cập nhật thông tin
+                </button>
               </div>
             );
           })() : (
@@ -657,7 +702,7 @@ export default function AdminAssignmentsPage() {
               <h4 className="text-lg font-bold text-slate-700 mb-2">Chọn nhân viên</h4>
               <p className="text-sm text-slate-500 mb-4">Click vào tên bên trái để xem thông tin chi tiết</p>
               <button
-                onClick={() => setShowAddModal(true)}
+                onClick={openAddModal}
                 className="mx-auto inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-md transition-all"
               >
                 <Plus className="h-4 w-4" /> Thêm nhân sự mới
@@ -667,19 +712,31 @@ export default function AdminAssignmentsPage() {
         </div>
       </div>
 
-      {/* Modal Thêm Nhân Sự */}
+      {/* Modal Thêm / Cập nhật Nhân Sự */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-indigo-900/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl border border-indigo-100 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
               <div>
                 <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                  <Users className="h-5 w-5 text-indigo-500" /> Thêm Nhân Sự Mới
+                  {editingEmployee ? (
+                    <>
+                      <Pencil className="h-5 w-5 text-amber-500" /> Cập nhật thông tin nhân sự
+                    </>
+                  ) : (
+                    <>
+                      <Users className="h-5 w-5 text-indigo-500" /> Thêm Nhân Sự Mới
+                    </>
+                  )}
                 </h2>
-                <p className="text-sm text-slate-500 mt-0.5">Nhập thông tin đầy đủ để thêm tài xế hoặc phụ xe</p>
+                <p className="text-sm text-slate-500 mt-0.5">
+                  {editingEmployee
+                    ? `Chỉnh sửa thông tin cho ${editingEmployee.fullName}`
+                    : "Nhập thông tin đầy đủ để thêm tài xế hoặc phụ xe"}
+                </p>
               </div>
               <button
-                onClick={() => setShowAddModal(false)}
+                onClick={closeAddModal}
                 className="p-2 rounded-full hover:bg-slate-100 transition-colors"
               >
                 <X className="h-5 w-5 text-slate-500" />
@@ -770,7 +827,7 @@ export default function AdminAssignmentsPage() {
               <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setShowAddModal(false)}
+                  onClick={closeAddModal}
                   className="px-5 py-2.5 border border-slate-200 rounded-xl text-slate-600 font-semibold hover:bg-slate-50 transition-all"
                 >
                   Hủy bỏ
@@ -778,10 +835,24 @@ export default function AdminAssignmentsPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-indigo-600 transition-all shadow-md disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-2"
+                  className={`px-5 py-2.5 text-white font-semibold rounded-xl transition-all shadow-md disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-2 ${
+                    editingEmployee
+                      ? "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+                      : "bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600"
+                  }`}
                 >
-                  {isSubmitting ? <span className="loading loading-spinner loading-xs"></span> : <Plus className="h-4 w-4" />}
-                  {isSubmitting ? "Đang lưu..." : "Lưu thông tin"}
+                  {isSubmitting ? (
+                    <span className="loading loading-spinner loading-xs"></span>
+                  ) : editingEmployee ? (
+                    <Pencil className="h-4 w-4" />
+                  ) : (
+                    <Plus className="h-4 w-4" />
+                  )}
+                  {isSubmitting
+                    ? "Đang lưu..."
+                    : editingEmployee
+                    ? "Cập nhật"
+                    : "Lưu thông tin"}
                 </button>
               </div>
             </form>

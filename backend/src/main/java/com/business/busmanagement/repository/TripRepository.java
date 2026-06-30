@@ -114,4 +114,15 @@ public interface TripRepository extends JpaRepository<Trip, Long> {
             @Param("arrivalTime") LocalDateTime arrivalTime,
             @Param("excludeTripId") Long excludeTripId
     );
+
+    /**
+     * PERFORMANCE (fix Dashboard): đếm trip theo date range - 1 query thay vì findAll + filter.
+     */
+    @Query("""
+            SELECT COUNT(t) FROM Trip t
+            WHERE t.departureTime >= :fromDate
+              AND t.departureTime < :toDate
+            """)
+    long countByDepartureTimeBetween(@Param("fromDate") LocalDateTime fromDate,
+                                     @Param("toDate") LocalDateTime toDate);
 }

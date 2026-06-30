@@ -32,4 +32,23 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByEmail(String email);
 
     long countByRoleId(Long roleId);
+
+    /**
+     * PERFORMANCE (fix Dashboard): đếm user theo status ngoại trừ INACTIVE.
+     * 1 query thay vì findAll + filter trong Java.
+     */
+    long countByStatusNot(User.UserStatus status);
+
+    /**
+     * PERFORMANCE (fix Dashboard): gom user theo role name trong 1 GROUP BY.
+     * Trả về [roleName, count] — 1 query thay cho O(N×M) loop trên users + roles.
+     */
+    @Query("""
+            SELECT r.name, COUNT(u)
+            FROM User u
+            JOIN u.role r
+            WHERE u.status <> 'INACTIVE'
+            GROUP BY r.name
+            """)
+    java.util.List<Object[]> countActiveUsersGroupedByRole();
 }

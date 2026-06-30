@@ -334,6 +334,11 @@ export const createEmployee = async (employeeData: Omit<Employee, 'id'>): Promis
   return response.data;
 };
 
+export const updateEmployee = async (id: number, employeeData: Partial<Omit<Employee, 'id'>>): Promise<Employee> => {
+  const response = await apiClient.put(`/admin/employees/${id}`, employeeData);
+  return response.data;
+};
+
 export const deleteEmployee = async (id: number): Promise<{ message: string }> => {
   const response = await apiClient.delete(`/admin/employees/${id}`);
   return response.data;

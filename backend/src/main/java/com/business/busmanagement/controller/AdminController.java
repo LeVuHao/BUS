@@ -7,6 +7,7 @@ import com.business.busmanagement.dto.AdminTicketDTO;
 
 import com.business.busmanagement.dto.TripCreateRequest;
 import com.business.busmanagement.dto.TripResponse;
+import com.business.busmanagement.dto.TripWithAssignmentsDTO;
 import com.business.busmanagement.dto.admin.*;
 import com.business.busmanagement.dto.feedback.*;
 import com.business.busmanagement.model.Feedback;
@@ -183,6 +184,19 @@ public class AdminController {
             @RequestParam(required = false) Long routeId,
             @RequestParam(required = false) Trip.TripStatus status) {
         return ResponseEntity.ok(adminService.getTrips(date, routeId, status));
+    }
+
+    /**
+     * PERFORMANCE (fix 2026-06-30): endpoint gộp trips + assignments.
+     * Trước đây FE phải gọi /admin/trip-assignments/{id} cho MỖI trip → N+1.
+     * Giờ: 1 request trả về tất cả trip + assignments, FE render ngay.
+     */
+    @GetMapping("/trips/with-assignments")
+    public ResponseEntity<List<TripWithAssignmentsDTO>> getTripsWithAssignments(
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate date,
+            @RequestParam(required = false) Long routeId,
+            @RequestParam(required = false) Trip.TripStatus status) {
+        return ResponseEntity.ok(adminService.getTripsWithAssignments(date, routeId, status));
     }
 
     @GetMapping("/trips/{id}")

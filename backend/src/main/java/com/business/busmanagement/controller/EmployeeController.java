@@ -48,7 +48,30 @@ public class EmployeeController {
         return ResponseEntity.ok(employeeRepository.findTopDriversByExperience());
     }
 
-    // 5. Xóa cứng một nhân sự khỏi hệ thống.
+    // 5. Cập nhật thông tin một nhân sự đã có.
+    //    Dùng JsonNode để phân biệt "field không gửi" vs "field gửi = null",
+    //    tránh ghi đè nhầm các trường optional (hometown, experienceYears) thành null
+    //    khi frontend chỉ gửi một phần payload.
+    //    KHÔNG cho phép đổi id và userId (giữ nguyên giá trị cũ).
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateEmployee(@PathVariable Long id, @RequestBody com.fasterxml.jackson.databind.JsonNode payload) {
+        return employeeRepository.findById(id)
+                .<ResponseEntity<?>>map(emp -> {
+                    if (payload.has("fullName") && !payload.get("fullName").isNull()) emp.setFullName(payload.get("fullName").asText());
+                    if (payload.has("phone") && !payload.get("phone").isNull()) emp.setPhone(payload.get("phone").asText());
+                    if (payload.has("hometown") && !payload.get("hometown").isNull()) emp.setHometown(payload.get("hometown").asText());
+                    if (payload.has("experienceYears") && !payload.get("experienceYears").isNull()) emp.setExperienceYears(payload.get("experienceYears").asInt());
+                    if (payload.has("employeeType") && !payload.get("employeeType").isNull()) emp.setEmployeeType(Employee.EmployeeType.valueOf(payload.get("employeeType").asText()));
+                    if (payload.has("status") && !payload.get("status").isNull()) emp.setStatus(Employee.Status.valueOf(payload.get("status").asText()));
+                    Employee saved = employeeRepository.save(emp);
+                    return ResponseEntity.ok(saved);
+                })
+                .orElseGet(() -> ResponseEntity.status(404).body(Map.of(
+                        "message", "Không tìm thấy nhân sự với id = " + id
+                )));
+    }
+
+    // 6. Xóa cứng một nhân sự khỏi hệ thống.
     //    KHÔNG xóa trip_assignments liên quan — lịch sử chuyến đi vẫn được giữ nguyên
     //    (trip_assignments.employee_id là Long plain, không có FK ràng buộc với employees.id).
     @DeleteMapping("/{id}")
