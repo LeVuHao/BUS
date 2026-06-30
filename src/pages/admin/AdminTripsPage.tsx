@@ -31,6 +31,7 @@ import TripSeatsModal from "./TripSeatsModal";
 import Pagination from "../../components/ui/Pagination";
 import { Employee, TripStatus } from "../../types";
 import { extractApiErrorMessage } from "../../utils/apiError";
+import { useAssignmentsStore } from "../../stores/assignmentsStore";
 
 const LOCATIONS = [
   "Hà Nội", "TP.HCM", "Đà Nẵng", "Cần Thơ", "Huế",
@@ -82,6 +83,8 @@ export default function AdminTripsPage() {
   const [feedbackFilterTripId, setFeedbackFilterTripId] = useState<number | null>(null);
   const [initialFeedbackId, setInitialFeedbackId] = useState<number | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
+  const assignmentsVersion = useAssignmentsStore((s) => s.version);
+  const bumpAssignments = useAssignmentsStore((s) => s.bumpAssignments);
 
   const loadTrips = useCallback(async () => {
     setIsLoading(true);
@@ -122,6 +125,15 @@ export default function AdminTripsPage() {
   useEffect(() => {
     loadTrips();
   }, [loadTrips]);
+
+  // Khi trang khác (AdminAssignmentsPage) thay đổi phân công -> tự reload
+  // để cột "Nhân sự" cập nhật ngay, không cần F5.
+  useEffect(() => {
+    if (assignmentsVersion > 0) {
+      loadTrips();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assignmentsVersion]);
 
   // Load feedback stats (để hiển thị badge)
   const loadFeedbackStats = useCallback(async () => {
@@ -246,6 +258,9 @@ export default function AdminTripsPage() {
           form.driverId ? Number(form.driverId) : null,
           form.assistantId ? Number(form.assistantId) : null
         );
+        // Bump store để các trang admin khác (vd: AdminAssignmentsPage) tự reload,
+        // giữ cho 2 view luôn đồng bộ sau khi phân công.
+        bumpAssignments();
       }
 
       toast.success(editingTrip ? "Cập nhật chuyến thành công" : "Tạo chuyến mới thành công");

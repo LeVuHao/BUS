@@ -16,6 +16,7 @@ import { Employee } from "../../types";
 import Pagination from "../../components/ui/Pagination";
 import { extractApiErrorMessage } from "../../utils/apiError";
 import toast from "react-hot-toast";
+import { useAssignmentsStore } from "../../stores/assignmentsStore";
 import {
   Users,
   Truck,
@@ -30,7 +31,6 @@ import {
   MapPin,
   Calendar,
   Briefcase,
-  Mail,
   FileText,
   Plus,
   X,
@@ -42,21 +42,32 @@ import {
 const STAFF_BADGES: Record<string, {
   licenseType: string;
   birthday: string;
-  address: string;
-  email: string;
   achievements: string[];
   totalTrips: number;
 }> = {
-  "Nguyễn Văn Minh": { licenseType: "GPLX hạng E", birthday: "15/03/1978", address: "Hà Nội", email: "minh.nguyen@bus.com", achievements: ["An toàn 15 năm", "1250+ chuyến"], totalTrips: 1250 },
-  "Trần Đình Cường": { licenseType: "GPLX hạng E", birthday: "20/06/1979", address: "TP.HCM", email: "cuong.tran@bus.com", achievements: ["An toàn 14 năm", "980+ chuyến"], totalTrips: 980 },
-  "Lê Hồng Sơn": { licenseType: "GPLX hạng E", birthday: "10/01/1980", address: "Đà Nẵng", email: "son.le@bus.com", achievements: ["An toàn 13 năm", "920+ chuyến"], totalTrips: 920 },
-  "Phạm Quốc Việt": { licenseType: "GPLX hạng E", birthday: "05/09/1981", address: "Hải Phòng", email: "viet.pham@bus.com", achievements: ["An toàn 12 năm", "880+ chuyến"], totalTrips: 880 },
-  "Hoàng Minh Tuấn": { licenseType: "GPLX hạng E", birthday: "25/04/1982", address: "Cần Thơ", email: "tuan.hoang@bus.com", achievements: ["An toàn 11 năm", "850+ chuyến"], totalTrips: 850 },
-  "Nguyễn Thị Lan": { licenseType: "GPLX hạng D", birthday: "18/08/1990", address: "Nam Định", email: "lan.nguyen@bus.com", achievements: ["10 năm kinh nghiệm", "520+ chuyến"], totalTrips: 520 },
-  "Trần Thị Hương": { licenseType: "GPLX hạng D", birthday: "12/05/1991", address: "Thái Bình", email: "huong.tran@bus.com", achievements: ["8 năm kinh nghiệm", "450+ chuyến"], totalTrips: 450 },
-  "Lê Thị Mai": { licenseType: "GPLX hạng D", birthday: "20/11/1992", address: "Hưng Yên", email: "mai.le@bus.com", achievements: ["7 năm kinh nghiệm", "400+ chuyến"], totalTrips: 400 },
-  "Phạm Thị Oanh": { licenseType: "GPLX hạng D", birthday: "08/03/1993", address: "Bắc Ninh", email: "oanh.pham@bus.com", achievements: ["6 năm kinh nghiệm", "380+ chuyến"], totalTrips: 380 },
-  "Hoàng Thị Ngọc": { licenseType: "GPLX hạng D", birthday: "15/07/1994", address: "Vĩnh Phúc", email: "ngoc.hoang@bus.com", achievements: ["5 năm kinh nghiệm", "350+ chuyến"], totalTrips: 350 },
+  // ─────────────── TÀI XẾ (DRIVER) ───────────────
+  "Nguyễn Văn An":    { licenseType: "GPLX hạng E", birthday: "15/03/1986", achievements: ["An toàn 12 năm", "940+ chuyến"], totalTrips: 940 },
+  "Trần Văn Bình":    { licenseType: "GPLX hạng E", birthday: "22/07/1988", achievements: ["An toàn 10 năm", "760+ chuyến"], totalTrips: 760 },
+  "Lê Đình Cường":    { licenseType: "GPLX hạng E", birthday: "10/01/1983", achievements: ["An toàn 14 năm", "1.150+ chuyến", "Chuyên tuyến dài Bắc–Nam"], totalTrips: 1150 },
+  "Phạm Văn Dũng":    { licenseType: "GPLX hạng D", birthday: "05/09/1991", achievements: ["Tay nghề vững", "510+ chuyến"], totalTrips: 510 },
+  "Hoàng Văn Em":      { licenseType: "GPLX hạng D", birthday: "25/04/1995", achievements: ["Nhiệt tình", "320+ chuyến"], totalTrips: 320 },
+  "Đặng Văn Phong":    { licenseType: "GPLX hạng E", birthday: "20/06/1979", achievements: ["An toàn 15 năm", "1.420+ chuyến", "Lái xe kỳ cựu"], totalTrips: 1420 },
+  "Bùi Văn Quang":     { licenseType: "GPLX hạng E", birthday: "12/11/1989", achievements: ["An toàn 9 năm", "680+ chuyến"], totalTrips: 680 },
+  "Đỗ Văn Sơn":        { licenseType: "GPLX hạng E", birthday: "08/05/1984", achievements: ["An toàn 11 năm", "880+ chuyến"], totalTrips: 880 },
+  "Ngô Văn Tài":       { licenseType: "GPLX hạng D", birthday: "30/08/1996", achievements: ["Tuyển tài năng trẻ", "210+ chuyến"], totalTrips: 210 },
+  "Vũ Văn Thành":      { licenseType: "GPLX hạng D", birthday: "18/02/1990", achievements: ["Chuyên tuyến miền Trung", "440+ chuyến"], totalTrips: 440 },
+
+  // ─────────────── PHỤ XE (ASSISTANT) ───────────────
+  "Lý Thị Hương":      { licenseType: "Chứng chỉ PX", birthday: "18/08/1990", achievements: ["9 năm kinh nghiệm", "Hỗ trợ chuyên nghiệp", "720+ chuyến"], totalTrips: 720 },
+  "Trương Thị Lan":    { licenseType: "Chứng chỉ PX", birthday: "12/05/1993", achievements: ["6 năm kinh nghiệm", "Chuyên chăm sóc khách"], totalTrips: 460 },
+  "Phan Thị Mai":      { licenseType: "Chứng chỉ PX", birthday: "20/11/1998", achievements: ["4 năm kinh nghiệm", "Nhanh nhẹn, nhiệt tình"], totalTrips: 220 },
+  "Cao Thị Ngọc":      { licenseType: "Chứng chỉ PX", birthday: "08/03/1992", achievements: ["7 năm kinh nghiệm", "Thông thạo tuyến Bắc–Nam"], totalTrips: 540 },
+  "Đinh Thị Oanh":     { licenseType: "Chứng chỉ PX", birthday: "05/07/1999", achievements: ["3 năm kinh nghiệm", "Năng động"], totalTrips: 150 },
+  "Hứa Thị Phương":    { licenseType: "Chứng chỉ PX", birthday: "14/10/1991", achievements: ["8 năm kinh nghiệm", "Giao tiếp tốt"], totalTrips: 610 },
+  "Châu Thị Quỳnh":    { licenseType: "Chứng chỉ PX", birthday: "26/02/1994", achievements: ["5 năm kinh nghiệm", "Thân thiện"], totalTrips: 380 },
+  "Thái Thị Thu":      { licenseType: "Chứng chỉ PX", birthday: "09/09/1995", achievements: ["4 năm kinh nghiệm", "Cẩn thận, chu đáo"], totalTrips: 260 },
+  "Phùng Thị Vy":      { licenseType: "Chứng chỉ PX", birthday: "17/04/2001", achievements: ["Mới vào nghề", "Ham học hỏi"], totalTrips: 90 },
+  "Đoàn Thị Xinh":     { licenseType: "Chứng chỉ PX", birthday: "23/12/1993", achievements: ["6 năm kinh nghiệm", "Chuyên phục vụ cao cấp"], totalTrips: 430 },
 };
 
 export default function AdminAssignmentsPage() {
@@ -66,9 +77,13 @@ export default function AdminAssignmentsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"drivers" | "assistants">("drivers");
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
-  const [selectedTripAssignments, setSelectedTripAssignments] = useState<Record<number, { driverId: string; assistantId: string }>>({});
+  const [selectedTripAssignments, setSelectedTripAssignments] = useState<Record<number, { driverId: string | null; assistantId: string | null }>>({});
   const [isSaving, setIsSaving] = useState<number | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+
+  // Subscribe store để reload data khi trang khác (AdminTripsPage) thay đổi phân công
+  const assignmentsVersion = useAssignmentsStore((s) => s.version);
+  const bumpAssignments = useAssignmentsStore((s) => s.bumpAssignments);
 
   // Form thêm nhân sự (từ AdminEmployeesPage)
   const [formData, setFormData] = useState({
@@ -103,6 +118,48 @@ export default function AdminAssignmentsPage() {
     loadData();
   }, [loadData]);
 
+  // Khi trang khác (AdminTripsPage) thay đổi phân công -> tự reload để dropdown/badge đồng bộ
+  useEffect(() => {
+    if (assignmentsVersion > 0) {
+      loadData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assignmentsVersion]);
+
+  // Pre-populate dropdown từ phân công hiện tại — chỉ với trip user chưa động vào dropdown.
+  // Sau khi user chọn 1 lần, ta lưu giá trị và KHÔNG bao giờ ghi đè lại (kể cả khi `trips` refetch).
+  // Mục đích: nếu user đang chọn "Chưa có TX" để unassign, không bị effect sau loadData() ghi đè lại.
+  // `undefined` = chưa động vào (sẽ được seed ở đây); `null` = user chọn "Chưa có" (giữ nguyên).
+  useEffect(() => {
+    setSelectedTripAssignments((prev) => {
+      const tripIdSet = new Set(trips.map((t) => t.id));
+      let changed = false;
+      const next: Record<number, { driverId: string | null; assistantId: string | null }> = {};
+      // Loại bỏ entry của các trip không còn trong danh sách hiện tại (vd: đổi trang)
+      for (const idStr of Object.keys(prev)) {
+        const id = Number(idStr);
+        if (tripIdSet.has(id)) {
+          next[id] = prev[id];
+        } else {
+          changed = true;
+        }
+      }
+      for (const trip of trips) {
+        if (next[trip.id]) continue;
+        const driver = trip.assignments?.find((a) => a.role === "DRIVER");
+        const assistant = trip.assignments?.find((a) => a.role === "ASSISTANT");
+        next[trip.id] = {
+          driverId:
+            driver?.employeeId != null ? String(driver.employeeId) : null,
+          assistantId:
+            assistant?.employeeId != null ? String(assistant.employeeId) : null,
+        };
+        changed = true;
+      }
+      return changed ? next : prev;
+    });
+  }, [trips]);
+
   const activeTrips = trips.filter((t) => t.status === "SCHEDULED" || t.status === "RUNNING");
   const staffList = activeTab === "drivers" ? drivers : assistants;
 
@@ -121,23 +178,78 @@ export default function AdminAssignmentsPage() {
   };
 
   const handleAssignmentChange = (tripId: number, type: "driverId" | "assistantId", value: string) => {
+    // Lưu `null` khi user chọn "Chưa có TX/PX" để phân biệt với "chưa động vào".
     setSelectedTripAssignments((prev) => ({
       ...prev,
-      [tripId]: { ...prev[tripId], [type]: value },
+      [tripId]: {
+        ...(prev[tripId] ?? {}),
+        [type]: value === "" ? null : value,
+      },
     }));
   };
 
   const handleAssign = async (tripId: number) => {
     const assignment = selectedTripAssignments[tripId];
     if (!assignment) return;
+
+    // Lấy trạng thái hiện tại từ data đã fetch
+    const currentDriver =
+      activeTrips
+        .find((t) => t.id === tripId)
+        ?.assignments?.find((a) => a.role === "DRIVER")?.employeeId ?? null;
+    const currentAssistant =
+      activeTrips
+        .find((t) => t.id === tripId)
+        ?.assignments?.find((a) => a.role === "ASSISTANT")?.employeeId ?? null;
+
+    // `undefined` = user chưa động vào dropdown -> giữ nguyên giá trị hiện tại.
+    // `null`     = user chọn "Chưa có"   -> gửi null để xoá phân công.
+    // string khác rỗng = user chọn 1 nhân viên cụ thể.
+    const wantedDriverId =
+      assignment.driverId === undefined
+        ? currentDriver
+        : assignment.driverId === null
+          ? null
+          : Number(assignment.driverId);
+    const wantedAssistantId =
+      assignment.assistantId === undefined
+        ? currentAssistant
+        : assignment.assistantId === null
+          ? null
+          : Number(assignment.assistantId);
+
+    const isUnassignAll = wantedDriverId === null && wantedAssistantId === null;
+    const hasChange =
+      wantedDriverId !== currentDriver ||
+      wantedAssistantId !== currentAssistant;
+
+    // User chưa động vào dropdown nào -> nếu DB cũng rỗng thì bỏ qua, ngược lại cũng bỏ qua
+    // (đã có đúng TX/PX hiện tại rồi).
+    const untouched =
+      assignment.driverId === undefined &&
+      assignment.assistantId === undefined;
+    if (untouched) {
+      toast(
+        isUnassignAll
+          ? "Chuyến này chưa có phân công nào."
+          : "Không có thay đổi để lưu."
+      );
+      return;
+    }
+
+    // User đã chạm dropdown nhưng giá trị trùng với DB (chọn lại đúng người cũ) -> bỏ qua.
+    if (!isUnassignAll && !hasChange) {
+      toast("Không có thay đổi để lưu.");
+      return;
+    }
+
     setIsSaving(tripId);
     try {
-      await assignStaffToTrip(
-        tripId,
-        assignment.driverId ? Number(assignment.driverId) : null,
-        assignment.assistantId ? Number(assignment.assistantId) : null
-      );
+      await assignStaffToTrip(tripId, wantedDriverId, wantedAssistantId);
       toast.success("Phân công thành công!");
+      // Bump store để các trang khác (AdminTripsPage) tự reload lại dữ liệu,
+      // giúp cột "Nhân sự" ở trang Quản lý chuyến & tuyến cập nhật ngay.
+      bumpAssignments();
       await loadData();
     } catch (err) {
       toast.error(extractApiErrorMessage(err) || "Không thể phân công");
@@ -194,12 +306,13 @@ export default function AdminAssignmentsPage() {
   };
 
   const getBadgeInfo = (name: string) => {
-    return STAFF_BADGES[name] || {
-      licenseType: "GPLX hạng D",
+    const found = STAFF_BADGES[name];
+    if (found) return found;
+    // Fallback cho nhân viên mới thêm chưa có trong STAFF_BADGES
+    return {
+      licenseType: name.includes("Thị") || name.includes("Thuy") ? "Chứng chỉ PX" : "GPLX hạng D",
       birthday: "—",
-      address: "—",
-      email: "—",
-      achievements: ["Kinh nghiệm tốt"],
+      achievements: ["Nhân viên tận tâm"],
       totalTrips: 0,
     };
   };
@@ -460,21 +573,23 @@ export default function AdminAssignmentsPage() {
                               <span className="text-xs text-slate-400">Chưa có PX</span>
                             )}
                             <select
-                              value={selectedTripAssignments[trip.id]?.driverId || ""}
+                              value={selectedTripAssignments[trip.id]?.driverId ?? ""}
                               onChange={(e) => handleAssignmentChange(trip.id, "driverId", e.target.value)}
                               className="text-xs px-2 py-1 border border-slate-200 bg-slate-50 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                              title="Chọn tài xế"
                             >
-                              <option value="">TX</option>
+                              <option value="">Chưa có TX</option>
                               {drivers.map((d) => (
                                 <option key={d.id} value={d.id}>{d.fullName}</option>
                               ))}
                             </select>
                             <select
-                              value={selectedTripAssignments[trip.id]?.assistantId || ""}
+                              value={selectedTripAssignments[trip.id]?.assistantId ?? ""}
                               onChange={(e) => handleAssignmentChange(trip.id, "assistantId", e.target.value)}
                               className="text-xs px-2 py-1 border border-slate-200 bg-slate-50 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                              title="Chọn phụ xe"
                             >
-                              <option value="">PX</option>
+                              <option value="">Chưa có PX</option>
                               {assistants.map((a) => (
                                 <option key={a.id} value={a.id}>{a.fullName}</option>
                               ))}
@@ -553,17 +668,6 @@ export default function AdminAssignmentsPage() {
                   </div>
                 </div>
 
-                {/* Email */}
-                {badge.email && badge.email !== "—" && (
-                  <div className="flex items-center gap-3 rounded-xl bg-white p-4 border border-indigo-100 mb-3 shadow-sm">
-                    <div className="rounded-full bg-blue-100 p-2 flex-shrink-0"><Mail className="h-4 w-4 text-blue-600" /></div>
-                    <div className="min-w-0">
-                      <p className="text-xs text-slate-500">Email</p>
-                      <p className="font-semibold text-slate-800 text-sm truncate">{badge.email}</p>
-                    </div>
-                  </div>
-                )}
-
                 {/* Chuyến hiện tại */}
                 <div className="flex items-center gap-3 rounded-xl bg-white p-4 border border-indigo-100 mb-3 shadow-sm">
                   <div className="rounded-full bg-amber-100 p-2 flex-shrink-0"><Truck className="h-4 w-4 text-amber-600" /></div>
@@ -580,7 +684,7 @@ export default function AdminAssignmentsPage() {
                   <div className="rounded-full bg-rose-100 p-2 flex-shrink-0"><MapPin className="h-4 w-4 text-rose-600" /></div>
                   <div className="min-w-0">
                     <p className="text-xs text-slate-500">Địa chỉ / Quê quán</p>
-                    <p className="font-semibold text-slate-800 text-sm">{selectedEmployee.hometown || badge.address}</p>
+                    <p className="font-semibold text-slate-800 text-sm">{selectedEmployee.hometown || "—"}</p>
                   </div>
                 </div>
 
@@ -615,9 +719,11 @@ export default function AdminAssignmentsPage() {
                 <div className="flex items-center gap-3 rounded-xl bg-white p-4 border border-indigo-100 mb-3 shadow-sm">
                   <div className="rounded-full bg-amber-100 p-2 flex-shrink-0"><Award className="h-4 w-4 text-amber-600" /></div>
                   <div className="min-w-0">
-                    <p className="text-xs text-slate-500">Kinh nghiệm</p>
-                    <p className="font-semibold text-slate-800 text-sm">
-                      {selectedEmployee.experienceYears || 0} năm
+                    <p className="text-xs text-slate-500">Số năm kinh nghiệm</p>
+                    <p className="font-bold text-slate-800 text-base">
+                      {selectedEmployee.experienceYears != null
+                        ? `${selectedEmployee.experienceYears} năm`
+                        : "—"}
                     </p>
                   </div>
                 </div>
