@@ -714,145 +714,227 @@ export default function AdminAssignmentsPage() {
 
       {/* Modal Thêm / Cập nhật Nhân Sự */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-indigo-900/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl border border-indigo-100 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-5">
-              <div>
-                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                  {editingEmployee ? (
-                    <>
-                      <Pencil className="h-5 w-5 text-amber-500" /> Cập nhật thông tin nhân sự
-                    </>
-                  ) : (
-                    <>
-                      <Users className="h-5 w-5 text-indigo-500" /> Thêm Nhân Sự Mới
-                    </>
-                  )}
-                </h2>
-                <p className="text-sm text-slate-500 mt-0.5">
-                  {editingEmployee
-                    ? `Chỉnh sửa thông tin cho ${editingEmployee.fullName}`
-                    : "Nhập thông tin đầy đủ để thêm tài xế hoặc phụ xe"}
-                </p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-indigo-900/50 backdrop-blur-md p-4 animate-[fadeIn_0.2s_ease-out]">
+          <div className={`w-full max-w-lg rounded-3xl shadow-2xl border-2 overflow-hidden max-h-[90vh] flex flex-col ${
+            editingEmployee
+              ? "border-amber-200 bg-gradient-to-br from-white via-amber-50/30 to-orange-50/40"
+              : "border-indigo-200 bg-gradient-to-br from-white via-indigo-50/30 to-purple-50/40"
+          }`}>
+            {/* Header gradient — đồng bộ style với header trang */}
+            <div className={`relative px-6 py-5 overflow-hidden ${
+              editingEmployee
+                ? "bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500"
+                : "bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500"
+            }`}>
+              <div className="absolute inset-0 opacity-20">
+                <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                  <path d="M0,60 Q25,40 50,60 T100,60 L100,100 L0,100 Z" fill="white" />
+                </svg>
               </div>
-              <button
-                onClick={closeAddModal}
-                className="p-2 rounded-full hover:bg-slate-100 transition-colors"
-              >
-                <X className="h-5 w-5 text-slate-500" />
-              </button>
+              <div className="relative flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="rounded-xl bg-white/20 backdrop-blur-sm p-2.5 ring-2 ring-white/30 flex-shrink-0">
+                    {editingEmployee ? (
+                      <Pencil className="h-6 w-6 text-white" />
+                    ) : (
+                      <Users className="h-6 w-6 text-white" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <h2 className="text-xl font-bold text-white leading-tight">
+                      {editingEmployee ? "Cập nhật nhân sự" : "Thêm nhân sự mới"}
+                    </h2>
+                    <p className="text-sm text-white/85 mt-0.5">
+                      {editingEmployee
+                        ? `Chỉnh sửa thông tin cho ${editingEmployee.fullName}`
+                        : "Nhập đầy đủ thông tin để thêm tài xế / phụ xe"}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={closeAddModal}
+                  className="p-2 rounded-full bg-white/20 hover:bg-white/30 ring-1 ring-white/30 transition-colors flex-shrink-0"
+                  aria-label="Đóng"
+                >
+                  <X className="h-4 w-4 text-white" />
+                </button>
+              </div>
             </div>
 
-            <form onSubmit={handleAddStaff} className="space-y-4">
-              {/* Họ và tên */}
+            {/* Form body — scrollable (gồm cả footer để Enter vẫn submit được) */}
+            <form onSubmit={handleAddStaff} className="flex flex-col flex-1 min-h-0">
+              <div className="overflow-y-auto px-6 py-5 space-y-5 flex-1">
+              {/* ============ SECTION 1: Thông tin cá nhân ============ */}
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                  Họ và tên <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="VD: Nguyễn Văn A"
-                  className="w-full p-3 border border-indigo-200 rounded-xl focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition-all"
-                  value={formData.fullName}
-                  onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                />
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="h-px flex-1 bg-gradient-to-r from-indigo-200 to-transparent" />
+                  <span className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider">Thông tin cá nhân</span>
+                  <div className="h-px flex-1 bg-gradient-to-l from-indigo-200 to-transparent" />
+                </div>
+
+                <div className="space-y-3">
+                  {/* Họ và tên */}
+                  <div>
+                    <label className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 mb-1.5">
+                      <Users className="h-3.5 w-3.5 text-indigo-500" />
+                      Họ và tên <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                      <input
+                        type="text"
+                        placeholder="VD: Nguyễn Văn A"
+                        className="w-full pl-10 pr-3 py-2.5 bg-white border-2 border-slate-200 rounded-xl focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all text-sm font-medium placeholder:text-slate-300 placeholder:font-normal"
+                        value={formData.fullName}
+                        onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Số điện thoại */}
+                  <div>
+                    <label className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 mb-1.5">
+                      <Phone className="h-3.5 w-3.5 text-indigo-500" />
+                      Số điện thoại <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                      <input
+                        type="text"
+                        placeholder="VD: 0987654321"
+                        className="w-full pl-10 pr-3 py-2.5 bg-white border-2 border-slate-200 rounded-xl focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all text-sm font-medium placeholder:text-slate-300 placeholder:font-normal"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      />
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-1 ml-1">Dùng để liên hệ khi phân công chuyến</p>
+                  </div>
+                </div>
               </div>
 
-              {/* Số điện thoại */}
+              {/* ============ SECTION 2: Thông tin công việc ============ */}
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                  Số điện thoại <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="VD: 0987654321"
-                  className="w-full p-3 border border-indigo-200 rounded-xl focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition-all"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                />
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="h-px flex-1 bg-gradient-to-r from-purple-200 to-transparent" />
+                  <span className="text-[11px] font-bold text-purple-600 uppercase tracking-wider">Thông tin công việc</span>
+                  <div className="h-px flex-1 bg-gradient-to-l from-purple-200 to-transparent" />
+                </div>
+
+                <div className="space-y-3">
+                  {/* Hàng 1: Vai trò + Trạng thái */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 mb-1.5">
+                        <Shield className="h-3.5 w-3.5 text-indigo-500" />
+                        Vai trò
+                      </label>
+                      <div className="relative">
+                        <Shield className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none z-10" />
+                        <select
+                          className="w-full pl-10 pr-8 py-2.5 bg-white border-2 border-slate-200 rounded-xl focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all text-sm font-medium appearance-none cursor-pointer"
+                          value={formData.employeeType}
+                          onChange={(e) => setFormData({ ...formData, employeeType: e.target.value as "DRIVER" | "ASSISTANT" })}
+                        >
+                          <option value="DRIVER">Tài xế (Lái xe)</option>
+                          <option value="ASSISTANT">Phụ xe (Lơ xe)</option>
+                        </select>
+                        <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 rotate-90 pointer-events-none" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 mb-1.5">
+                        <UserCheck className="h-3.5 w-3.5 text-indigo-500" />
+                        Trạng thái
+                      </label>
+                      <div className="relative">
+                        <UserCheck className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none z-10" />
+                        <select
+                          className="w-full pl-10 pr-8 py-2.5 bg-white border-2 border-slate-200 rounded-xl focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all text-sm font-medium appearance-none cursor-pointer"
+                          value={formData.status}
+                          onChange={(e) => setFormData({ ...formData, status: e.target.value as "ACTIVE" | "INACTIVE" })}
+                        >
+                          <option value="ACTIVE">Đang hoạt động</option>
+                          <option value="INACTIVE">Nghỉ việc</option>
+                        </select>
+                        <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 rotate-90 pointer-events-none" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Hàng 2: Quê quán + Kinh nghiệm */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 mb-1.5">
+                        <MapPin className="h-3.5 w-3.5 text-indigo-500" />
+                        Quê quán / Địa chỉ
+                      </label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                        <input
+                          type="text"
+                          placeholder="VD: Hà Nội"
+                          className="w-full pl-10 pr-3 py-2.5 bg-white border-2 border-slate-200 rounded-xl focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all text-sm font-medium placeholder:text-slate-300 placeholder:font-normal"
+                          value={formData.hometown}
+                          onChange={(e) => setFormData({ ...formData, hometown: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 mb-1.5">
+                        <Award className="h-3.5 w-3.5 text-indigo-500" />
+                        Kinh nghiệm (năm)
+                      </label>
+                      <div className="relative">
+                        <Award className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                        <input
+                          type="number"
+                          min="0"
+                          placeholder="VD: 5"
+                          className="w-full pl-10 pr-3 py-2.5 bg-white border-2 border-slate-200 rounded-xl focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 outline-none transition-all text-sm font-medium placeholder:text-slate-300 placeholder:font-normal"
+                          value={formData.experienceYears}
+                          onChange={(e) => setFormData({ ...formData, experienceYears: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
               </div>
 
-              {/* Hàng đầu - Vai trò + Trạng thái */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Vai trò</label>
-                  <select
-                    className="w-full p-3 border border-indigo-200 rounded-xl bg-white focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition-all"
-                    value={formData.employeeType}
-                    onChange={(e) => setFormData({ ...formData, employeeType: e.target.value as "DRIVER" | "ASSISTANT" })}
-                  >
-                    <option value="DRIVER">Tài xế (Lái xe)</option>
-                    <option value="ASSISTANT">Phụ xe (Lơ xe)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Trạng thái</label>
-                  <select
-                    className="w-full p-3 border border-indigo-200 rounded-xl bg-white focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition-all"
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value as "ACTIVE" | "INACTIVE" })}
-                  >
-                    <option value="ACTIVE">Đang hoạt động</option>
-                    <option value="INACTIVE">Nghỉ việc</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Hàng tiếp - Quê quán + Kinh nghiệm */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Quê quán / Địa chỉ</label>
-                  <input
-                    type="text"
-                    placeholder="VD: Hà Nội"
-                    className="w-full p-3 border border-indigo-200 rounded-xl focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition-all"
-                    value={formData.hometown}
-                    onChange={(e) => setFormData({ ...formData, hometown: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Kinh nghiệm (năm)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="VD: 5"
-                    className="w-full p-3 border border-indigo-200 rounded-xl focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition-all"
-                    value={formData.experienceYears}
-                    onChange={(e) => setFormData({ ...formData, experienceYears: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              {/* Buttons */}
-              <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
+              {/* Footer — cố định dưới form, vẫn submit được bằng Enter */}
+              <div className="px-6 py-4 bg-slate-50/80 border-t border-slate-200 flex justify-end gap-3 flex-shrink-0">
                 <button
                   type="button"
                   onClick={closeAddModal}
-                  className="px-5 py-2.5 border border-slate-200 rounded-xl text-slate-600 font-semibold hover:bg-slate-50 transition-all"
+                  className="px-5 py-2.5 bg-white border-2 border-slate-200 rounded-xl text-slate-600 text-sm font-semibold hover:bg-slate-100 hover:border-slate-300 transition-all"
                 >
                   Hủy bỏ
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className={`px-5 py-2.5 text-white font-semibold rounded-xl transition-all shadow-md disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-2 ${
+                  className={`px-5 py-2.5 text-white text-sm font-semibold rounded-xl transition-all shadow-md hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-2 ${
                     editingEmployee
                       ? "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
                       : "bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600"
                   }`}
                 >
                   {isSubmitting ? (
-                    <span className="loading loading-spinner loading-xs"></span>
+                    <>
+                      <span className="loading loading-spinner loading-xs"></span>
+                      Đang lưu...
+                    </>
                   ) : editingEmployee ? (
-                    <Pencil className="h-4 w-4" />
+                    <>
+                      <Pencil className="h-4 w-4" />
+                      Cập nhật
+                    </>
                   ) : (
-                    <Plus className="h-4 w-4" />
+                    <>
+                      <Plus className="h-4 w-4" />
+                      Lưu thông tin
+                    </>
                   )}
-                  {isSubmitting
-                    ? "Đang lưu..."
-                    : editingEmployee
-                    ? "Cập nhật"
-                    : "Lưu thông tin"}
                 </button>
               </div>
             </form>
