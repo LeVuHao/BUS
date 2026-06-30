@@ -5,7 +5,7 @@
 set -e
 
 # === CẤU HÌNH ===
-BACKEND_URL="${BACKEND_URL:-http://localhost:8080}"
+BACKEND_URL="${BACKEND_URL:-https://bus-backend-v2.onrender.com}"
 TMN_CODE="${VNPAY_TMN_CODE:-SY273SZH}"
 HASH_SECRET="${VNPAY_HASH_SECRET:-SFP53JL1Z5AS4O5WFIEBMEARJAEMDTBT}"
 

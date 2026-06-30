@@ -22,7 +22,7 @@ Start-Process -FilePath "ngrok" -ArgumentList "http", "4173" -WindowStyle Normal
 Write-Host ""
 Write-Host "All services started!" -ForegroundColor Green
 Write-Host ""
-Write-Host "Backend:  http://localhost:8080" -ForegroundColor Cyan
+Write-Host "Backend:  https://bus-backend-v2.onrender.com" -ForegroundColor Cyan
 Write-Host "Frontend: http://localhost:4173" -ForegroundColor Cyan
 Write-Host "Ngrok:    check http://localhost:4040 for public URL" -ForegroundColor Cyan
 Write-Host ""

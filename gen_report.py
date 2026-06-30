@@ -1431,7 +1431,7 @@ def build_chapter5(doc):
         ("Bước 3: Cài đặt Backend",
          "Mở terminal tại thư mục backend/. Chạy lệnh: mvn clean install. "
          "Sau đó chạy: mvn spring-boot:run. Backend khởi động ở port 8080. "
-         "Kiểm tra: GET http://localhost:8080/api/health → trả về 'OK'."),
+         "Kiểm tra: GET https://bus-backend-v2.onrender.com/api/health → trả về 'OK'."),
         ("Bước 4: Cài đặt Frontend",
          "Mở terminal tại thư mục root (frontend/). Chạy: npm install. "
          "Sau đó: npm run dev. Frontend khởi động ở port 4173. "

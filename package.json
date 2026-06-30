@@ -10,7 +10,7 @@
     "dev:full": "concurrently \"npm run dev:backend\" \"npm run wait-for-backend && npm run dev:frontend\"",
     "dev:frontend": "vite",
     "dev:backend": "cd backend && mvn spring-boot:run",
-    "wait-for-backend": "wait-on http://localhost:8080/api/health",
+    "wait-for-backend": "wait-on https://bus-backend-v2.onrender.com/api/health",
     "install:backend": "cd backend && mvn clean install -DskipTests",
     "build:backend": "cd backend && mvn clean package -DskipTests"
   },

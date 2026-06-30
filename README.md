@@ -292,7 +292,7 @@ cd backend
 mvn spring-boot:run
 ```
 
-✅ Backend chạy ở `http://localhost:8080`  
+✅ Backend chạy ở `https://bus-backend-v2.onrender.com`  
 ✅ Database `bus_management_db` tự động được tạo  
 ✅ 4 routes + 20 buses + 20 employees (10 tài xế + 10 phụ xe) + admin user được seed tự động
 
@@ -360,7 +360,7 @@ Các biến này được đọc qua `import.meta.env` và phải khai báo tron
 | Biến | Mặc định | Mô tả |
 |---|---|---|
 | `VITE_GOOGLE_CLIENT_ID` | *(không có — phải set)* | Google OAuth Client ID — lấy từ Google Cloud Console |
-| `VITE_API_BASE_URL` | `/api` | Base URL cho axios. Mặc định dùng Vite proxy `/api` → `http://localhost:8080`. Set khi deploy tách backend (vd `https://api.yourdomain.com`) |
+| `VITE_API_BASE_URL` | `/api` | Base URL cho axios. Mặc định dùng Vite proxy `/api` → `https://bus-backend-v2.onrender.com`. Set khi deploy tách backend (vd `https://api.yourdomain.com`) |
 
 > **Lưu ý**: Các biến frontend phải có tiền tố `VITE_` để Vite expose chúng ra client bundle. Nếu đặt sai tên, code sẽ trả về `undefined` và Google Login sẽ không hoạt động. Sau khi đổi `.env`, **khởi động lại** `npm run dev` để Vite nhận env mới.
 
@@ -1089,7 +1089,7 @@ Content-Type: application/json
 
 #### Đăng nhập admin
 ```bash
-curl -X POST http://localhost:8080/api/public/auth/login \
+curl -X POST https://bus-backend-v2.onrender.com/api/public/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"ChangeMe@123","role":"ADMIN"}'
 ```
@@ -1097,18 +1097,18 @@ curl -X POST http://localhost:8080/api/public/auth/login \
 #### Lấy dashboard
 ```bash
 TOKEN="<jwt_token_from_login>"
-curl http://localhost:8080/api/admin/dashboard \
+curl https://bus-backend-v2.onrender.com/api/admin/dashboard \
   -H "Authorization: Bearer $TOKEN"
 ```
 
 #### Tìm chuyến
 ```bash
-curl "http://localhost:8080/api/public/trips/search?origin=H%C3%A0%20N%E1%BB%99i&destination=TP.HCM&date=2026-07-01"
+curl "https://bus-backend-v2.onrender.com/api/public/trips/search?origin=H%C3%A0%20N%E1%BB%99i&destination=TP.HCM&date=2026-07-01"
 ```
 
 #### SSE stream (dùng curl)
 ```bash
-curl -N "http://localhost:8080/api/admin/notifications/stream?access_token=$TOKEN"
+curl -N "https://bus-backend-v2.onrender.com/api/admin/notifications/stream?access_token=$TOKEN"
 ```
 
 ### Unit tests
@@ -1159,7 +1159,7 @@ app.cors.allowed-origins=http://localhost:5173
 
 # Lỗi: IPN không được gọi
 # → VNPay cần URL public. Dùng Cloudflare Tunnel hoặc ngrok:
-cloudflared tunnel --url http://localhost:8080
+cloudflared tunnel --url https://bus-backend-v2.onrender.com
 # → Set VNPAY_IPN_URL = https://<tunnel>.trycloudflare.com/api/public/payment/vnpay/ipn
 ```
 
