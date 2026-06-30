@@ -14,7 +14,7 @@ $regBody = @{
 } | ConvertTo-Json
 
 try {
-    $regResponse = Invoke-RestMethod -Uri 'http://localhost:8080/api/public/auth/register' `
+    $regResponse = Invoke-RestMethod -Uri 'https://bus-backend-v2.onrender.com/api/public/auth/register' `
         -Method POST -ContentType 'application/json' -Body $regBody
     $token = $regResponse.token
     $userId = $regResponse.user.id
@@ -29,9 +29,9 @@ $headers = @{ "Authorization" = "Bearer $token" }
 # Step 2: Get available trips
 Write-Host "`n[2/7] Getting available trips..."
 try {
-    $trips = Invoke-RestMethod -Uri 'http://localhost:8080/api/public/trips?date=2026-06-27' -Method GET -Headers $headers
+    $trips = Invoke-RestMethod -Uri 'https://bus-backend-v2.onrender.com/api/public/trips?date=2026-06-27' -Method GET -Headers $headers
     if ($trips.Count -eq 0) {
-        $trips = Invoke-RestMethod -Uri 'http://localhost:8080/api/public/trips' -Method GET -Headers $headers
+        $trips = Invoke-RestMethod -Uri 'https://bus-backend-v2.onrender.com/api/public/trips' -Method GET -Headers $headers
     }
     $trip = $trips[0]
     $tripId = $trip.id
@@ -44,7 +44,7 @@ try {
 # Step 3: Get seats for the trip
 Write-Host "`n[3/7] Getting available seats..."
 try {
-    $seats = Invoke-RestMethod -Uri "http://localhost:8080/api/public/trips/$tripId/seats" -Method GET -Headers $headers
+    $seats = Invoke-RestMethod -Uri "https://bus-backend-v2.onrender.com/api/public/trips/$tripId/seats" -Method GET -Headers $headers
     $availableSeat = $seats | Where-Object { $_.booked -eq $false } | Select-Object -First 1
     if (-not $availableSeat) {
         $availableSeat = $seats[0]
@@ -71,7 +71,7 @@ $jsonBody = ConvertTo-Json -InputObject $bookBody -Compress
 $bytes = [System.Text.Encoding]::UTF8.GetBytes($jsonBody)
 
 try {
-    $ticket = Invoke-RestMethod -Uri 'http://localhost:8080/api/private/tickets' `
+    $ticket = Invoke-RestMethod -Uri 'https://bus-backend-v2.onrender.com/api/private/tickets' `
         -Method POST -ContentType 'application/json; charset=utf-8' `
         -Headers $headers -Body $jsonBody
     $ticketId = $ticket.id
@@ -93,7 +93,7 @@ Write-Host "`n[5/7] Creating VNPay payment URL..."
 $vnpayBody = ConvertTo-Json -InputObject @{ ticketId = $ticketId } -Compress
 
 try {
-    $vnpayRes = Invoke-RestMethod -Uri 'http://localhost:8080/api/private/payment/vnpay/create' `
+    $vnpayRes = Invoke-RestMethod -Uri 'https://bus-backend-v2.onrender.com/api/private/payment/vnpay/create' `
         -Method POST -ContentType 'application/json; charset=utf-8' `
         -Headers $headers -Body $vnpayBody
     $paymentUrl = $vnpayRes.paymentUrl
@@ -116,7 +116,7 @@ try {
 # Step 6: Verify ticket is in HOLD status
 Write-Host "`n[6/7] Verifying ticket status..."
 try {
-    $myTickets = Invoke-RestMethod -Uri 'http://localhost:8080/api/private/tickets/my' -Method GET -Headers $headers
+    $myTickets = Invoke-RestMethod -Uri 'https://bus-backend-v2.onrender.com/api/private/tickets/my' -Method GET -Headers $headers
     $bookedTicket = $myTickets | Where-Object { $_.id -eq $ticketId } | Select-Object -First 1
     Write-Host "   Ticket ID=$ticketId Status=$($bookedTicket.status)"
 } catch {

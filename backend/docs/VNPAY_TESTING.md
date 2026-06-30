@@ -6,7 +6,7 @@
 
 ## 1. Tại sao phải dùng ngrok?
 
-VNPay sandbox là server bên ngoài (`sandbox.vnpayment.vn`). Khi user thanh toán xong, VNPay cần gọi **IPN callback** tới backend của bạn qua internet công cộng. Nếu `app.vnpay.ipn-url` trỏ về `http://localhost:8080/...` thì VNPay sandbox không thể kết nối được.
+VNPay sandbox là server bên ngoài (`sandbox.vnpayment.vn`). Khi user thanh toán xong, VNPay cần gọi **IPN callback** tới backend của bạn qua internet công cộng. Nếu `app.vnpay.ipn-url` trỏ về `https://bus-backend-v2.onrender.com/...` thì VNPay sandbox không thể kết nối được.
 
 **Giải pháp:** dùng [ngrok](https://ngrok.com) để tạo URL public tạm thời trỏ về `localhost:8080`.
 
@@ -33,7 +33,7 @@ cd backend
 ./mvnw spring-boot:run
 ```
 
-Đảm bảo backend chạy ở `http://localhost:8080`.
+Đảm bảo backend chạy ở `https://bus-backend-v2.onrender.com`.
 
 ### Bước 3: Chạy ngrok
 
@@ -45,7 +45,7 @@ ngrok http 8080
 Kết quả sẽ có dạng:
 ```
 Session Status   online
-Forwarding       https://abc123xyz.ngrok-free.app → http://localhost:8080
+Forwarding       https://abc123xyz.ngrok-free.app → https://bus-backend-v2.onrender.com
 ```
 
 Copy URL Forwarding (ví dụ `https://abc123xyz.ngrok-free.app`).
@@ -79,7 +79,7 @@ app.vnpay.ipn-url=https://abc123xyz.ngrok-free.app/api/public/payment/vnpay/ipn
 1. **Login CUSTOMER**, book 1 vé (status HOLD).
 2. Gọi API tạo URL thanh toán:
    ```
-   POST http://localhost:8080/api/private/payment/vnpay/create
+   POST https://bus-backend-v2.onrender.com/api/private/payment/vnpay/create
    Authorization: Bearer <jwt-token>
    Content-Type: application/json
 
@@ -132,7 +132,7 @@ HASH_DATA="vnp_Amount=15000000&vnp_Command=pay&vnp_CreateDate=20260626110000&vnp
 SECURE_HASH=$(echo -n "$HASH_DATA" | openssl dgst -sha512 -hmac "SFP53JL1Z5AS4O5WFIEBMEARJAEMDTBT" -hex | awk '{print $2}')
 
 # Gọi IPN
-curl -X POST "http://localhost:8080/api/public/payment/vnpay/ipn" \
+curl -X POST "https://bus-backend-v2.onrender.com/api/public/payment/vnpay/ipn" \
   -H "Content-Type: application/x-www-form-urlencoded" \
   --data-urlencode "vnp_TmnCode=SY273SZH" \
   --data-urlencode "vnp_Amount=15000000" \

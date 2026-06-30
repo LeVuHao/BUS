@@ -3,7 +3,7 @@
 # Mô phỏng VNPay gọi IPN với payload + hash đúng → kiểm tra backend xử lý.
 
 param(
-    [string]$BackendUrl = "http://localhost:8080",
+    [string]$BackendUrl = "https://bus-backend-v2.onrender.com",
     [string]$TmnCode = "SY273SZH",
     [string]$HashSecret = "SFP53JL1Z5AS4O5WFIEBMEARJAEMDTBT",
     [string]$TxnRef = "",

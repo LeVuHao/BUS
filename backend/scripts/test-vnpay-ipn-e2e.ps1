@@ -1,5 +1,5 @@
 $ErrorActionPreference = "Continue"
-$BackendUrl = "http://localhost:8080"
+$BackendUrl = "https://bus-backend-v2.onrender.com"
 $TmnCode = "SY273SZH"
 $HashSecret = "SFP53JL1Z5AS4O5WFIEBMEARJAEMDTBT"
 
